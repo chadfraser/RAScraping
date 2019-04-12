@@ -51,9 +51,8 @@ namespace RAScraping
 
         public void FillAchievementData(HtmlNode htmlNode)
         {
-            var linkNode = htmlNode.SelectSingleNode("a");
+            var linkNode = htmlNode.SelectSingleNode(".//a");
             var retroPointsStringNode = htmlNode.SelectSingleNode("*[@class='TrueRatio']");
-
 
             if (retroPointsStringNode != null)
             {
@@ -67,7 +66,9 @@ namespace RAScraping
                 var nameAndPoints = linkNode.InnerText;
                 var parts = nameAndPoints.Split(' ');
                 var pointsString = parts[parts.Length - 1];
-                var name = nameAndPoints.Substring(0, nameAndPoints.Length - pointsString.Length);
+                pointsString = pointsString.Substring(1, pointsString.Length - 2);
+
+                var name = nameAndPoints.Substring(0, nameAndPoints.Length - pointsString.Length - 3);
 
                 _url = _baseUrl + link;
                 _name = name;

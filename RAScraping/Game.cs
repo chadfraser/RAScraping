@@ -89,12 +89,14 @@ namespace RAScraping
                 Int32.TryParse(achievementCountString, out _achievementCount);
                 Int32.TryParse(totalPointsString, out _totalPoints);
             }
+
+            BuildAchievements(doc);
+            Console.WriteLine(_name);
         }
 
         public void BuildAchievements(HtmlDocument doc)
         {
             HtmlNodeCollection achievementNodes = doc.DocumentNode.SelectNodes("//*[@class='achievementdata']");
-
 
             foreach (var achievementNode in achievementNodes)
             {
@@ -104,10 +106,10 @@ namespace RAScraping
             }
         }
 
-        void SerializeGameObject()
-        {
+        //void SerializeGameObject()
+        //{
 
-        }
+        //}
 
         public override bool Equals(Object obj)
         {
@@ -129,9 +131,34 @@ namespace RAScraping
                         return false;
                     }
                 }
-                return ((_url == g.Url) && (_name == g.Name) && (_achievementCount == g.AchievementCount) && 
+                return ((_url == g.Url) && (_name == g.Name) && (_achievementCount == g.AchievementCount) &&
                     (_totalPoints == g.TotalPoints) && (_totalRetroRatioPoints == g.TotalRetroRatioPoints));
             }
         }
+
+        //public override int GetHashCode()
+        //{
+        //    if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+        //    {
+        //        return false;
+        //    }
+        //    else
+        //    {
+        //        Game g = (Game)obj;
+        //        if (_achievements.Count != g.Achievements.Count)
+        //        {
+        //            return false;
+        //        }
+        //        for (int i = 0; i < _achievements.Count; i++)
+        //        {
+        //            if (_achievements[i] != g.Achievements[i])
+        //            {
+        //                return false;
+        //            }
+        //        }
+        //        return ((_url == g.Url) && (_name == g.Name) && (_achievementCount == g.AchievementCount) &&
+        //            (_totalPoints == g.TotalPoints) && (_totalRetroRatioPoints == g.TotalRetroRatioPoints));
+        //    }
+        //}
     }
 }
