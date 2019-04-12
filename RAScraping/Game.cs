@@ -103,5 +103,35 @@ namespace RAScraping
                 _achievements.Add(newAchievement);
             }
         }
+
+        void SerializeGameObject()
+        {
+
+        }
+
+        public override bool Equals(Object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+            else
+            {
+                Game g = (Game)obj;
+                if (_achievements.Count != g.Achievements.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < _achievements.Count; i++)
+                {
+                    if (_achievements[i] != g.Achievements[i])
+                    {
+                        return false;
+                    }
+                }
+                return ((_url == g.Url) && (_name == g.Name) && (_achievementCount == g.AchievementCount) && 
+                    (_totalPoints == g.TotalPoints) && (_totalRetroRatioPoints == g.TotalRetroRatioPoints));
+            }
+        }
     }
 }
