@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -51,12 +52,7 @@ namespace RAScraping
             get { return _playedGamesList; }
             set { _playedGamesList = value; }
         }
-
-
-        public User(string username) : this(username, _baseUrl + username)
-        {
-        }
-
+        
         public User(string username, string url)
         {
             this._username = username;
@@ -64,6 +60,30 @@ namespace RAScraping
             _points = _retroRatioPoints = 0;
             _completedGamesList = new List<Game>();
             _playedGamesList = new List<Game>();
+        }
+
+        public User(string username) : this(username, _baseUrl + username)
+        {
+        }
+
+        public void FillCompletedGames(HtmlDocument doc)
+        {
+            List<string> links = new List<string>();
+
+            var htmlNodes = doc.DocumentNode.SelectNodes("//div[@class='trophyimage']//a");
+            foreach (var node in htmlNodes)
+            {
+                links.Add(node.Attributes["href"].Value);
+            }
+
+            foreach (var link in links)
+            {
+                var newGame = new Game(link);
+                var newDoc = Program.LoadDocument(newGame.Url);
+                newGame.FillGameData(newDoc);
+                System.Threading.Thread.Sleep(2000);
+                _completedGamesList.Add(newGame);
+            }
         }
     }
 }

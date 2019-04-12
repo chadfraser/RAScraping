@@ -9,7 +9,7 @@ namespace RAScraping
 {
     public class Game
     {
-        private static string _baseUrl = "http://retroachievements.org";
+        private static readonly string _baseUrl = "http://retroachievements.org";
         public static string BaseUrl
         {
             get { return _baseUrl; }
@@ -20,7 +20,7 @@ namespace RAScraping
         private int _achievementCount;
         private int _totalPoints;
         private int _totalRetroRatioPoints;
-        //private List<Achievement> _achievements;
+        private List<Achievement> _achievements;
 
         public string Name
         {
@@ -47,18 +47,18 @@ namespace RAScraping
             get { return _totalRetroRatioPoints; }
             set { _totalRetroRatioPoints = value; }
         }
-        //public List<Achievement> Achievements
-        //{
-        //    get { return _achievements; }
-        //    set { _achievements = value; }
-        //}
+        public List<Achievement> Achievements
+        {
+            get { return _achievements; }
+            set { _achievements = value; }
+        }
 
         public Game(string name, string urlSuffix)
         {
             this._name = name;
             this._url = _baseUrl + urlSuffix;
             _achievementCount = _totalPoints = _totalRetroRatioPoints = 0;
-            //_achievements = new List<Achievement>();
+            _achievements = new List<Achievement>();
         }
         public Game(string urlSuffix) : this("", urlSuffix)
         {
@@ -88,6 +88,19 @@ namespace RAScraping
                 var totalPointsString = boldTagNodes[6].InnerText;
                 Int32.TryParse(achievementCountString, out _achievementCount);
                 Int32.TryParse(totalPointsString, out _totalPoints);
+            }
+        }
+
+        public void BuildAchievements(HtmlDocument doc)
+        {
+            HtmlNodeCollection achievementNodes = doc.DocumentNode.SelectNodes("//*[@class='achievementdata']");
+
+
+            foreach (var achievementNode in achievementNodes)
+            {
+                var newAchievement = new Achievement();
+                newAchievement.FillAchievementData(achievementNode);
+                _achievements.Add(newAchievement);
             }
         }
     }

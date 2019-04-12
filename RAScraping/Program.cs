@@ -30,62 +30,16 @@ namespace RAScraping
 
 
                 HtmlDocument doc = LoadDocument(newUser.Url);
-                var completedGamesLinks = GetCompletedGames(doc);
-
-                //foreach (var url in completedGamesLinks)
-                //{
-                //    var newGame = 
-                //}
+                newUser.FillCompletedGames(doc);
             }
             Console.ReadLine();
         }
 
-        static HtmlDocument LoadDocument(string url)
+        public static HtmlDocument LoadDocument(string url)
         {
             var website = new HtmlWeb();
             HtmlDocument doc = website.Load(url);
             return doc;
-        }
-
-        static List<Game> GetCompletedGames(HtmlDocument doc)
-        {
-            var games = new List<Game>();
-            List<string> links = GetCompletedGameLinks(doc);
-
-            //var htmlNodes = doc.DocumentNode.SelectNodes("//div[@class='trophyimage']//a");
-            //if (htmlNodes == null)
-            //{
-            //    return null;
-            //}
-
-            foreach (var link in links)
-            {
-                var newGame = new Game(link);
-                games.Add(newGame);
-                var newDoc = LoadDocument(newGame.Url);
-
-                Console.WriteLine(newGame.Url);
-                newGame.FillGameData(newDoc);
-                System.Threading.Thread.Sleep(2000);
-            }
-            return games;
-        }
-
-        static List<string> GetCompletedGameLinks(HtmlDocument doc)
-        {
-            List<string> links = new List<string>();
-
-            var htmlNodes = doc.DocumentNode.SelectNodes("//div[@class='trophyimage']//a");
-            if (htmlNodes == null)
-            {
-                return null;
-            }
-
-            foreach (var node in htmlNodes)
-            {
-                links.Add(node.Attributes["href"].Value);
-            }
-            return links;
         }
     }
 }
