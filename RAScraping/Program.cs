@@ -26,12 +26,14 @@ namespace RAScraping
             {
                 var newUser = new User(username);
                 users.Add(newUser);
-                Console.WriteLine(newUser.Url);
-
 
                 HtmlDocument doc = LoadDocument(newUser.Url);
                 newUser.FillCompletedGames(doc);
+
+                var jsonSerialize = JsonConvert.SerializeObject(newUser, Formatting.Indented);
+                File.WriteAllText("../../new_json.json", jsonSerialize);
             }
+
             Console.ReadLine();
         }
 
