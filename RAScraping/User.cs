@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Summary description for Class1
 /// </summary>
-namespace RAScraping.User
+namespace RAScraping
 {
     public class User
     {
@@ -52,17 +53,17 @@ namespace RAScraping.User
         }
 
 
-        public User(string username) : this(username, baseUrl + username)
+        public User(string username) : this(username, _baseUrl + username)
         {
         }
 
         public User(string username, string url)
         {
-            this.username = username;
-            this.url = url;
-            points = retroRatioPoints = 0;
-            completedGamesList = new List<Game>();
-            playedGamesList = new List<Game>();
+            this._username = username;
+            this._url = url;
+            _points = _retroRatioPoints = 0;
+            _completedGamesList = new List<Game>();
+            _playedGamesList = new List<Game>();
         }
     }
 }
