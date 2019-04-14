@@ -106,14 +106,9 @@ namespace RAScraping
             }
         }
 
-        //void SerializeGameObject()
-        //{
-
-        //}
-
         public override bool Equals(Object obj)
         {
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            if ((obj is null) || !this.GetType().Equals(obj.GetType()))
             {
                 return false;
             }
@@ -131,34 +126,25 @@ namespace RAScraping
                         return false;
                     }
                 }
-                return ((_url == g.Url) && (_name == g.Name) && (_achievementCount == g.AchievementCount) &&
-                    (_totalPoints == g.TotalPoints) && (_totalRetroRatioPoints == g.TotalRetroRatioPoints));
+                return ((_url == g.Url) && (_name == g.Name) && (_totalPoints == g.TotalPoints));
             }
         }
 
-        //public override int GetHashCode()
-        //{
-        //    if ((obj == null) || !this.GetType().Equals(obj.GetType()))
-        //    {
-        //        return false;
-        //    }
-        //    else
-        //    {
-        //        Game g = (Game)obj;
-        //        if (_achievements.Count != g.Achievements.Count)
-        //        {
-        //            return false;
-        //        }
-        //        for (int i = 0; i < _achievements.Count; i++)
-        //        {
-        //            if (_achievements[i] != g.Achievements[i])
-        //            {
-        //                return false;
-        //            }
-        //        }
-        //        return ((_url == g.Url) && (_name == g.Name) && (_achievementCount == g.AchievementCount) &&
-        //            (_totalPoints == g.TotalPoints) && (_totalRetroRatioPoints == g.TotalRetroRatioPoints));
-        //    }
-        //}
+        public override int GetHashCode()
+        {
+            const int baseHash = 7673;
+            const int hashFactor = 95651;
+
+            int hash = baseHash;
+            foreach (Achievement ach in _achievements)
+            {
+                hash = (hash * hashFactor) ^ ach.GetHashCode();
+            }
+            hash = (hash * hashFactor) ^ (!(_url is null) ? _url.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(_name is null) ? _name.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ _achievementCount.GetHashCode();
+            hash = (hash * hashFactor) ^ _totalPoints.GetHashCode();
+            return hash;
+        }
     }
 }

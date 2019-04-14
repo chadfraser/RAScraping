@@ -78,15 +78,27 @@ namespace RAScraping
 
         public override bool Equals(Object obj)
         {
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            if ((obj is null) || !this.GetType().Equals(obj.GetType()))
             {
                 return false;
             }
             else
             {
                 Achievement a = (Achievement)obj;
-                return ((_url == a.Url) && (_name == a.Name) && (_points == a.Points) && (_retroRatioPoints == a.RetroRatioPoints));
+                return ((_url == a.Url) && (_name == a.Name) && (_points == a.Points));
             }
+        }
+
+        public override int GetHashCode()
+        {
+            const int baseHash = 8039;
+            const int hashFactor = 90989;
+
+            int hash = baseHash;
+            hash = (hash * hashFactor) ^ (!(_url is null) ? _url.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(_name is null) ? _name.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ _points.GetHashCode();
+            return hash;
         }
     }
 }
