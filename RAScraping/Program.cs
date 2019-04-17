@@ -6,23 +6,39 @@ using System.Threading.Tasks;
 using HtmlAgilityPack;
 using System.IO;
 using Newtonsoft.Json;
+//using testing;
 
 namespace RAScraping
 {
     class Program
     {
         private static readonly string userDataFilepath = "../../data/ra_user_data.json";
+        private static readonly string absoluteUserDataPath = Path.GetFullPath(userDataFilepath);
+        private static readonly string absoluteUserDataDirectory = Path.GetDirectoryName(absoluteUserDataPath);
         private static Boolean oneUserPerFile = true;
 
         static void Main(string[] args)
         {
-            using (StreamReader r = new StreamReader("../../data/usernames.json"))
+            //TestData.Test();
+            try
             {
-                var json = r.ReadToEnd();
-                RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
-                CreateAndWriteUserData(rootObject);
+                using (StreamReader r = new StreamReader("../../data/usernames.json"))
+                {
+                    var json = r.ReadToEnd();
+                    RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
+                    if (rootObject.Usernames is null)
+                    {
+                        Console.WriteLine("The list of usernames in the usernames.json file is empty.");
+                        Environment.Exit(0);
+                    }
+                    CreateAndWriteUserData(rootObject);
+                }
             }
-
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("The file usernames.json was not found in the appropriate data folder.");
+                Environment.Exit(0);
+            }
         }
 
         public static HtmlDocument LoadDocument(string url)
@@ -42,6 +58,9 @@ namespace RAScraping
 
                 if (oneUserPerFile)
                 {
+                    var newUserFullPath = Path.GetFullPath($"../../data/users/{newUser.Username}.json");
+                    var newUserDataDirectory = Path.GetDirectoryName(newUserFullPath);
+                    Directory.CreateDirectory(newUserDataDirectory);
                     if (!File.Exists($"../../data/users/{username}.json"))
                     {
                         WriteSingleUserData(newUser);
@@ -56,6 +75,7 @@ namespace RAScraping
 
             if (!oneUserPerFile)
             {
+                Directory.CreateDirectory(absoluteUserDataPath);
                 if (!File.Exists(userDataFilepath))
                 {
                     WriteAllUserData(users);
@@ -85,16 +105,18 @@ namespace RAScraping
 
         static void CompareSingleUserData(User newUser)
         {
+            User tempUser;
             using (StreamReader r = new StreamReader($"../../data/users/{newUser.Username}.json"))
             {
                 var json = r.ReadToEnd();
-                var tempUser = JsonConvert.DeserializeObject<User>(json);
-                if (newUser != tempUser)
-                {
-                    string jsonSerialize = JsonConvert.SerializeObject(newUser, Formatting.Indented);
-                    Console.WriteLine($"Some information on the user '{newUser.Username}' has changed since this program was last run.");
-                    File.WriteAllText($"../../data/users/{newUser.Username}.json", jsonSerialize);
-                }
+                tempUser = JsonConvert.DeserializeObject<User>(json);
+            }
+
+            if (newUser != tempUser)
+            {
+                string jsonSerialize = JsonConvert.SerializeObject(newUser, Formatting.Indented);
+                Console.WriteLine($"Some information on the user '{newUser.Username}' has changed since this program was last run.");
+                File.WriteAllText($"../../data/users/{newUser.Username}.json", jsonSerialize);
             }
         }
 
