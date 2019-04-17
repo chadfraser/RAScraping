@@ -85,7 +85,7 @@ namespace RAScraping
             else
             {
                 Achievement a = (Achievement)obj;
-                return ((_url == a.Url) && (_name == a.Name) && (_points == a.Points));
+                return ((_url.Equals(a.Url)) && (_name.Equals(a.Name)) && (_points.Equals(a.Points)));
             }
         }
 

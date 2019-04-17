@@ -121,12 +121,12 @@ namespace RAScraping
                 }
                 for (int i = 0; i < _achievements.Count; i++)
                 {
-                    if (_achievements[i] != g.Achievements[i])
+                    if (!_achievements[i].Equals(g.Achievements[i]))
                     {
                         return false;
                     }
                 }
-                return ((_url == g.Url) && (_name == g.Name) && (_totalPoints == g.TotalPoints));
+                return ((_url.Equals(g.Url)) && (_name.Equals(g.Name)) && (_totalPoints.Equals(g.TotalPoints)));
             }
         }
 
