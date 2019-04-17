@@ -65,6 +65,9 @@ namespace RAScraping
         public User(string username) : this(username, _baseUrl + username)
         {
         }
+        public User() : this("", "")
+        {
+        }
 
         public void FillCompletedGames(HtmlDocument doc)
         {
@@ -84,6 +87,58 @@ namespace RAScraping
                 System.Threading.Thread.Sleep(2000);
                 _completedGamesList.Add(newGame);
             }
+        }
+
+        private static bool AreListsEqual(List<Game> list1, List<Game> list2)
+        {
+            var areListsEqual = true;
+
+            if (list1.Count != list2.Count)
+                return false;
+
+            for (var i = 0; i < list1.Count; i++)
+            {
+                if (list2[i] != list1[i])
+                {
+                    areListsEqual = false;
+                }
+            }
+
+            return areListsEqual;
+        }
+
+        public override bool Equals(Object obj)
+        {
+            if ((obj is null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+            else
+            {
+                User u = (User)obj;
+                bool equalLists = AreListsEqual(_playedGamesList, u.PlayedGamesList) && AreListsEqual(_completedGamesList, u.CompletedGamesList);
+                return ((_url.Equals(u.Url)) && (_username.Equals(u.Username)) && (_points.Equals(u.Points)) && equalLists);
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            const int baseHash = 7013;
+            const int hashFactor = 86351;
+
+            int hash = baseHash;
+            foreach (Game g in _playedGamesList)
+            {
+                hash = (hash * hashFactor) ^ g.GetHashCode();
+            }
+            foreach (Game g in _completedGamesList)
+            {
+                hash = (hash * hashFactor) ^ g.GetHashCode();
+            }
+            hash = (hash * hashFactor) ^ (!(_url is null) ? _url.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(_username is null) ? _username.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ _points.GetHashCode();
+            return hash;
         }
     }
 }
