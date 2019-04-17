@@ -60,7 +60,12 @@ namespace RAScraping
             _achievementCount = _totalPoints = _totalRetroRatioPoints = 0;
             _achievements = new List<Achievement>();
         }
+
         public Game(string urlSuffix) : this("", urlSuffix)
+        {
+        }
+
+        public Game() : this("", "")
         {
         }
 
@@ -91,7 +96,6 @@ namespace RAScraping
             }
 
             BuildAchievements(doc);
-            Console.WriteLine(_name);
         }
 
         public void BuildAchievements(HtmlDocument doc)

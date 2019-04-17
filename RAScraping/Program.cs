@@ -15,7 +15,7 @@ namespace RAScraping
         private static readonly string userDataFilepath = "../../data/ra_user_data.json";
         private static readonly string absoluteUserDataPath = Path.GetFullPath(userDataFilepath);
         private static readonly string absoluteUserDataDirectory = Path.GetDirectoryName(absoluteUserDataPath);
-        private static Boolean oneUserPerFile = true;
+        private static bool oneUserPerFile = true;
 
         static void Main(string[] args)
         {
@@ -28,7 +28,7 @@ namespace RAScraping
                     RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
                     if (rootObject.Usernames is null)
                     {
-                        Console.WriteLine("The list of usernames in the usernames.json file is empty.");
+                        Console.WriteLine("The list of usernames in the 'usernames.json' file is empty.");
                         Environment.Exit(0);
                     }
                     CreateAndWriteUserData(rootObject);
@@ -36,7 +36,7 @@ namespace RAScraping
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine("The file usernames.json was not found in the appropriate data folder.");
+                Console.WriteLine("The file 'usernames.json' was not found in the appropriate data folder.");
                 Environment.Exit(0);
             }
         }
@@ -112,11 +112,10 @@ namespace RAScraping
                 tempUser = JsonConvert.DeserializeObject<User>(json);
             }
 
-            if (newUser != tempUser)
+            if (!newUser.Equals(tempUser))
             {
-                string jsonSerialize = JsonConvert.SerializeObject(newUser, Formatting.Indented);
-                Console.WriteLine($"Some information on the user '{newUser.Username}' has changed since this program was last run.");
-                File.WriteAllText($"../../data/users/{newUser.Username}.json", jsonSerialize);
+                User.WriteDifferencesInUsers(newUser, tempUser);
+                WriteSingleUserData(newUser);
             }
         }
 
@@ -128,20 +127,25 @@ namespace RAScraping
 
         static void CompareAllUserData(List<User> newUsers)
         {
-            HashSet<User> currentUsers;
+            Dictionary<string, User> currentUsers;
             var finalUsers = new List<User>();
 
             using (StreamReader r = new StreamReader(userDataFilepath))
             {
                 var json = r.ReadToEnd();
-                currentUsers = new HashSet<User>(JsonConvert.DeserializeObject<HashSet<User>>(json));
+                var tempList = new HashSet<User>(JsonConvert.DeserializeObject<List<User>>(json));
+                currentUsers = tempList.ToDictionary(x => x.Url, x => x);
             }
 
             foreach (var user in newUsers)
             {
-                if (!currentUsers.Contains(user))
+                if (!currentUsers.ContainsKey(user.Url))
                 {
-                    Console.WriteLine($"{user.Username} is either newly added to our tracker, or has updated data.");
+                    Console.WriteLine($"{user.Username} is newly added to our tracker.");
+                }
+                else if (!currentUsers[user.Url].Equals(user))
+                {
+                    User.WriteDifferencesInUsers(user, currentUsers[user.Url]);
                 }
                 finalUsers.Add(user);
             }

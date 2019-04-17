@@ -9,7 +9,7 @@ namespace RAScraping
 {
     public class User
     {
-        private static string _baseUrl = "http://retroachievements.org/user/";
+        private static readonly string _baseUrl = "http://retroachievements.org/user/";
         public static string BaseUrl
         {
             get { return _baseUrl; }
@@ -22,16 +22,9 @@ namespace RAScraping
         private List<Game> _completedGamesList;
         private List<Game> _playedGamesList;
 
-        public string Username
-        {
-            get { return _username; }
-            set { _username = value; }
-        }
-        public string Url
-        {
-            get { return _url; }
-            set { _url = value; }
-        }
+
+        public string Username { get => _username; set => _username = value; }
+        public string Url { get => _url; set => _url = value; }
         public int Points
         {
             get { return _points; }
@@ -52,7 +45,7 @@ namespace RAScraping
             get { return _playedGamesList; }
             set { _playedGamesList = value; }
         }
-        
+
         public User(string username, string url)
         {
             this._username = username;
@@ -65,6 +58,7 @@ namespace RAScraping
         public User(string username) : this(username, _baseUrl + username)
         {
         }
+
         public User() : this("", "")
         {
         }
@@ -89,22 +83,98 @@ namespace RAScraping
             }
         }
 
-        private static bool AreListsEqual(List<Game> list1, List<Game> list2)
+        public static void WriteDifferencesInUsers(User newUser, User oldUser)
         {
-            var areListsEqual = true;
-
-            if (list1.Count != list2.Count)
-                return false;
-
-            for (var i = 0; i < list1.Count; i++)
+            Console.WriteLine($"Some information on the user '{newUser.Username}' has changed since this program was last run.");
+            if (!newUser.Url.Equals(oldUser.Url))
             {
-                if (list2[i] != list1[i])
+                WriteUrlErrorMessage(newUser.Username);
+                return;
+            }
+            Console.WriteLine($"{newUser.Username} has undergone the following changes since the last time this program was run:");
+            if (!newUser.Points.Equals(oldUser.Points))
+            {
+                WriteDifferenceInPoints(newUser, oldUser);
+            }
+            if (!AreListsEqual(newUser.CompletedGamesList, oldUser.CompletedGamesList))
+            {
+                CompareGameUrls(newUser.Username, newUser.CompletedGamesList, oldUser.CompletedGamesList, true);
+            }
+            if (!AreListsEqual(newUser.PlayedGamesList, oldUser.PlayedGamesList))
+            {
+                CompareGameUrls(newUser.Username, newUser.PlayedGamesList, oldUser.PlayedGamesList, false);
+            }
+            Console.ReadLine();
+        }
+
+        public static void CompareGameUrls(string newUserUsername, List<Game> newUserGames, List<Game> oldUserGames, bool comparingCompletedGames)
+        {
+            var oldUserGameData = new Dictionary<string, string>();
+
+            foreach (Game g in oldUserGames)
+            {
+                oldUserGameData.Add(g.Url, g.Name);
+            }
+            foreach (Game g in newUserGames)
+            {
+                if (!oldUserGameData.ContainsKey(g.Url))
                 {
-                    areListsEqual = false;
+                    if (comparingCompletedGames)
+                    { 
+                        Console.WriteLine($"\t{newUserUsername} has recently completed {g.Name}.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"\t{newUserUsername}'s gameplay status in {g.Name} has recently changed.");
+                    }
+                }
+                else
+                {
+                    oldUserGameData.Remove(g.Url);
                 }
             }
+            foreach (string gameName in oldUserGameData.Values)
+            {
+                if (comparingCompletedGames)
+                {
+                    Console.WriteLine($"\t{gameName} was removed from {newUserUsername}'s completed games list.");
+                }
+                else
+                {
+                    Console.WriteLine($"\t{gameName} was removed from {newUserUsername}'s played games list.");
+                }
+            }
+        }
 
-            return areListsEqual;
+        public static void WriteUrlErrorMessage(string username)
+        {
+            Console.WriteLine($"User '{username}' has a url that does not correspond to their url already stored in the json file.");
+            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new user data.");
+            Console.WriteLine($"Press enter to override the stored json file with the new user data.");
+            Console.ReadLine();
+        }
+
+        public static void WriteDifferenceInPoints(User newUser, User oldUser)
+        {
+            string comparator = (newUser.Points < oldUser.Points) ? "gained" : "lost";
+            var pointDifference = Math.Abs(newUser.Points - oldUser.Points);
+            Console.WriteLine($"\t{newUser.Username} has {comparator} {pointDifference} points.");
+        }
+
+        private static bool AreListsEqual(List<Game> list1, List<Game> list2)
+        {
+            if (list1.Count != list2.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < list1.Count; i++)
+            {
+                if (!list2[i].Equals(list1[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public override bool Equals(Object obj)
