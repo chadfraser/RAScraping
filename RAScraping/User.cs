@@ -10,10 +10,8 @@ namespace RAScraping
     public class User
     {
         private static readonly string _baseUrl = "http://retroachievements.org/user/";
-        public static string BaseUrl
-        {
-            get { return _baseUrl; }
-        }
+        private static readonly int _maxGamesToCheck = 1500;
+        public static string BaseUrl { get => _baseUrl; }
 
         private string _username;
         private string _url;
@@ -22,29 +20,12 @@ namespace RAScraping
         private List<Game> _completedGamesList;
         private List<Game> _playedGamesList;
 
-
         public string Username { get => _username; set => _username = value; }
         public string Url { get => _url; set => _url = value; }
-        public int Points
-        {
-            get { return _points; }
-            set { _points = value; }
-        }
-        public int RetroRatioPoints
-        {
-            get { return _retroRatioPoints; }
-            set { _retroRatioPoints = value; }
-        }
-        public List<Game> CompletedGamesList
-        {
-            get { return _completedGamesList; }
-            set { _completedGamesList = value; }
-        }
-        public List<Game> PlayedGamesList
-        {
-            get { return _playedGamesList; }
-            set { _playedGamesList = value; }
-        }
+        public int Points { get => _points; set => _points = value; }
+        public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
+        public List<Game> CompletedGamesList { get => _completedGamesList; set => _completedGamesList = value; }
+        public List<Game> PlayedGamesList { get => _playedGamesList; set => _playedGamesList = value; }
 
         public User(string username, string url)
         {
@@ -55,7 +36,7 @@ namespace RAScraping
             _playedGamesList = new List<Game>();
         }
 
-        public User(string username) : this(username, _baseUrl + username)
+        public User(string username) : this(username, $"{_baseUrl}{username}&g={_maxGamesToCheck}")
         {
         }
 
@@ -63,9 +44,9 @@ namespace RAScraping
         {
         }
 
-        public void FillCompletedGames(HtmlDocument doc)
+        public void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
         {
-            List<string> links = new List<string>();
+            var links = new List<string>();
 
             var htmlNodes = doc.DocumentNode.SelectNodes("//div[@class='trophyimage']//a");
             foreach (var node in htmlNodes)
@@ -76,9 +57,30 @@ namespace RAScraping
             foreach (var link in links)
             {
                 var newGame = new Game(link);
-                var newDoc = Program.LoadDocument(newGame.Url);
-                newGame.FillGameData(newDoc);
-                System.Threading.Thread.Sleep(2000);
+                newGame = newGame.GetGameValueIfInDict(ref storedGames);
+                _completedGamesList.Add(newGame);
+            }
+        }
+
+        public void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
+        {
+            var links = new List<string>();
+            var completedGamesSet = new HashSet<string>();
+
+            var htmlNodes = doc.DocumentNode.SelectNodes("//div[@id='usercompletedgamescomponent']//td[@class='']//a");
+            foreach (var node in htmlNodes)
+            {
+                links.Add(node.Attributes["href"].Value);
+            }
+
+            foreach (var link in links)
+            {
+                if (completedGamesSet.Contains(link))
+                {
+                    continue;
+                }
+                var newGame = new Game(link);
+                newGame = newGame.GetGameValueIfInDict(ref storedGames);
                 _completedGamesList.Add(newGame);
             }
         }
@@ -158,7 +160,14 @@ namespace RAScraping
         {
             string comparator = (newUser.Points < oldUser.Points) ? "gained" : "lost";
             var pointDifference = Math.Abs(newUser.Points - oldUser.Points);
-            Console.WriteLine($"\t{newUser.Username} has {comparator} {pointDifference} points.");
+            if (pointDifference == 1)
+            {
+                Console.WriteLine($"\t{newUser.Username} has {comparator} {pointDifference} point.");
+            }
+            else
+            {
+                Console.WriteLine($"\t{newUser.Username} has {comparator} {pointDifference} points.");
+            }
         }
 
         private static bool AreListsEqual(List<Game> list1, List<Game> list2)

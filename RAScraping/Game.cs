@@ -24,7 +24,7 @@ namespace RAScraping
 
         public string Name
         {
-            get { return _name; }
+            get => _name; 
             set { _name = value; }
         }
         public string Url
@@ -107,6 +107,22 @@ namespace RAScraping
                 var newAchievement = new Achievement();
                 newAchievement.FillAchievementData(achievementNode);
                 _achievements.Add(newAchievement);
+            }
+        }
+
+        public Game GetGameValueIfInDict(ref Dictionary<string, Game> storedGames)
+        {
+            if (!storedGames.ContainsKey(_url))
+            {
+                var newDoc = Program.LoadDocument(_url);
+                FillGameData(newDoc);
+                System.Threading.Thread.Sleep(2000);
+                storedGames[_url] = this;
+                return this;
+            }
+            else
+            {
+                return storedGames[_url];
             }
         }
 
