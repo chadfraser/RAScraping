@@ -91,7 +91,7 @@ namespace RAScraping
         static User BuildSingleUserData(string username, ref Dictionary<string, Game> storedGames)
         {
             var newUser = new User(username);
-            newUser.FillGames(ref storedGames);
+            newUser.FillPlayerData(ref storedGames);
             return newUser;
         }
 
@@ -113,7 +113,7 @@ namespace RAScraping
 
             if (!newUser.Equals(tempUser))
             {
-                User.WriteDifferencesInUsers(newUser, tempUser);
+                newUser.WriteDifferencesInUsers(tempUser);
                 WriteSingleUserData(newUser);
             }
         }
@@ -144,7 +144,7 @@ namespace RAScraping
                 }
                 else if (!currentUsers[user.UrlSuffix].Equals(user))
                 {
-                    User.WriteDifferencesInUsers(user, currentUsers[user.UrlSuffix]);
+                    user.WriteDifferencesInUsers(currentUsers[user.UrlSuffix]);
                 }
                 finalUsers.Add(user);
             }
