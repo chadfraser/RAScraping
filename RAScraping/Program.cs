@@ -50,11 +50,12 @@ namespace RAScraping
 
         static void CreateAndWriteUserData(RootObject rootObject)
         {
-            List<User> users = new List<User>();
+            var users = new List<User>();
+            var storedGames = new Dictionary<string, Game>();
 
             foreach (string username in rootObject.Usernames)
             {
-                User newUser = BuildSingleUserData(username);
+                User newUser = BuildSingleUserData(username, ref storedGames);
 
                 if (oneUserPerFile)
                 {
@@ -87,12 +88,10 @@ namespace RAScraping
             }
         }
 
-        static User BuildSingleUserData(string username)
+        static User BuildSingleUserData(string username, ref Dictionary<string, Game> storedGames)
         {
             var newUser = new User(username);
-
-            HtmlDocument doc = LoadDocument(newUser.Url);
-            newUser.FillCompletedGames(doc);
+            newUser.FillGames(ref storedGames);
             return newUser;
         }
 
@@ -134,18 +133,18 @@ namespace RAScraping
             {
                 var json = r.ReadToEnd();
                 var tempList = new HashSet<User>(JsonConvert.DeserializeObject<List<User>>(json));
-                currentUsers = tempList.ToDictionary(x => x.Url, x => x);
+                currentUsers = tempList.ToDictionary(x => x.UrlSuffix, x => x);
             }
 
             foreach (var user in newUsers)
             {
-                if (!currentUsers.ContainsKey(user.Url))
+                if (!currentUsers.ContainsKey(user.UrlSuffix))
                 {
                     Console.WriteLine($"{user.Username} is newly added to our tracker.");
                 }
-                else if (!currentUsers[user.Url].Equals(user))
+                else if (!currentUsers[user.UrlSuffix].Equals(user))
                 {
-                    User.WriteDifferencesInUsers(user, currentUsers[user.Url]);
+                    User.WriteDifferencesInUsers(user, currentUsers[user.UrlSuffix]);
                 }
                 finalUsers.Add(user);
             }

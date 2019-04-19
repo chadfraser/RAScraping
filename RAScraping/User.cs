@@ -36,8 +36,15 @@ namespace RAScraping
         public List<Game> CompletedGamesList { get; set; }
         public List<Game> PlayedGamesList { get; set; }
 
-        public void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
+        public void FillGames(ref Dictionary<string, Game> storedGames)
         {
+            FillCompletedGames(ref storedGames);
+            FillPlayedGames(ref storedGames);
+        }
+
+        public void FillCompletedGames(ref Dictionary<string, Game> storedGames)
+        {
+            HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
             var links = new List<string>();
 
             var htmlNodes = doc.DocumentNode.SelectNodes("//div[@class='trophyimage']//a");
@@ -54,10 +61,16 @@ namespace RAScraping
             }
         }
 
-        public void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
+        public void FillPlayedGames(ref Dictionary<string, Game> storedGames)
         {
+            HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
             var links = new List<string>();
             var completedGamesSet = new HashSet<string>();
+
+            foreach(var game in CompletedGamesList)
+            {
+                completedGamesSet.Add(game.UrlSuffix);
+            }
 
             var htmlNodes = doc.DocumentNode.SelectNodes("//div[@id='usercompletedgamescomponent']//td[@class='']//a");
             foreach (var node in htmlNodes)
@@ -73,7 +86,8 @@ namespace RAScraping
                 }
                 var newGame = new Game(link);
                 newGame.FillDictWithGameValue(ref storedGames);
-                CompletedGamesList.Add(newGame);
+                PlayedGamesList.Add(newGame);
+                Console.WriteLine(newGame.UrlSuffix + "  " + newGame.Name);
             }
         }
 
