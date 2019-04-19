@@ -10,6 +10,8 @@ namespace RAScraping
     public class User
     {
         private static readonly int _maxGamesToCheck = 1500;
+        private int _points;
+        private int _retroRatioPoints;
 
         public User(string username, string urlSuffix)
         {
@@ -31,48 +33,63 @@ namespace RAScraping
         public static string BaseUrl { get; } = "http://retroachievements.org/user/";
         public string Username { get; set; }
         public string UrlSuffix { get; set; }
-        public int Points { get; set; }
-        public int RetroRatioPoints { get; set; }
+        public int Points { get => _points; set => _points = value; }
+        public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
         public List<Game> CompletedGamesList { get; set; }
         public List<Game> PlayedGamesList { get; set; }
 
-        public void FillGames(ref Dictionary<string, Game> storedGames)
-        {
-            FillCompletedGames(ref storedGames);
-            FillPlayedGames(ref storedGames);
-        }
-
-        public void FillCompletedGames(ref Dictionary<string, Game> storedGames)
+        public void FillPlayerData(ref Dictionary<string, Game> storedGames)
         {
             HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
-            var links = new List<string>();
+            FillPoints(doc);
+            FillCompletedGames(doc, ref storedGames);
+            FillPlayedGames(doc, ref storedGames);
+        }
 
-            var htmlNodes = doc.DocumentNode.SelectNodes("//div[@class='trophyimage']//a");
-            foreach (var node in htmlNodes)
+        public void FillPoints(HtmlDocument doc)
+        {
+            var pointsNode = doc.DocumentNode.SelectSingleNode("//span[@class='username']");
+            var retroPointsNode = pointsNode.SelectSingleNode("//span[@class='TrueRatio']");
+
+            if (pointsNode != null)
             {
-                links.Add(node.Attributes["href"].Value);
+                var pointsString = pointsNode.InnerText;
+                pointsString = pointsString.Substring(1, pointsString.Length - 9);
+                Int32.TryParse(pointsString, out _points);
             }
 
-            foreach (var link in links)
+            if (retroPointsNode != null)
             {
-                var newGame = new Game(link);
-                newGame.FillDictWithGameValue(ref storedGames);
-                CompletedGamesList.Add(newGame);
+                var retroPointsString = retroPointsNode.InnerText;
+                retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
+                Int32.TryParse(retroPointsString, out _retroRatioPoints);
             }
         }
 
-        public void FillPlayedGames(ref Dictionary<string, Game> storedGames)
+        public void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
         {
-            HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
-            var links = new List<string>();
+            var xPath = "//div[@class='trophyimage']//a";
+            CompletedGamesList = BuildGamesList(doc, ref storedGames, xPath, new HashSet<string>());
+        }
+
+        public void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
+        {
             var completedGamesSet = new HashSet<string>();
-
             foreach(var game in CompletedGamesList)
             {
                 completedGamesSet.Add(game.UrlSuffix);
             }
 
-            var htmlNodes = doc.DocumentNode.SelectNodes("//div[@id='usercompletedgamescomponent']//td[@class='']//a");
+            var xPath = "//div[@id='usercompletedgamescomponent']//td[@class='']//a";
+            PlayedGamesList = BuildGamesList(doc, ref storedGames, xPath, completedGamesSet);
+        }
+
+        public List<Game> BuildGamesList(HtmlDocument doc, ref Dictionary<string, Game> storedGames, string xPath, HashSet<string> urlsToExclude)
+        {
+            var links = new List<string>();
+            var gamesList = new List<Game>();
+
+            var htmlNodes = doc.DocumentNode.SelectNodes(xPath);
             foreach (var node in htmlNodes)
             {
                 links.Add(node.Attributes["href"].Value);
@@ -80,44 +97,46 @@ namespace RAScraping
 
             foreach (var link in links)
             {
-                if (completedGamesSet.Contains(link))
+                if (urlsToExclude.Contains(link))
                 {
                     continue;
                 }
                 var newGame = new Game(link);
                 newGame.FillDictWithGameValue(ref storedGames);
-                PlayedGamesList.Add(newGame);
-                Console.WriteLine(newGame.UrlSuffix + "  " + newGame.Name);
+                gamesList.Add(newGame);
             }
+
+            return gamesList;
         }
 
-        public static void WriteDifferencesInUsers(User newUser, User oldUser)
+        public void WriteDifferencesInUsers(User oldUser)
         {
-            Console.WriteLine($"Some information on the user '{newUser.Username}' has changed since this program was last run.");
-            if (!newUser.UrlSuffix.Equals(oldUser.UrlSuffix))
+            Console.WriteLine($"Some information on the user '{Username}' has changed since this program was last run.");
+            if (!UrlSuffix.Equals(oldUser.UrlSuffix))
             {
-                WriteUrlErrorMessage(newUser.Username);
+                WriteUrlErrorMessage();
                 return;
             }
-            Console.WriteLine($"{newUser.Username} has undergone the following changes since the last time this program was run:");
-            if (!newUser.Points.Equals(oldUser.Points))
+            Console.WriteLine($"{Username} has undergone the following changes since the last time this program was run:");
+            if (!Points.Equals(oldUser.Points))
             {
-                WriteDifferenceInPoints(newUser, oldUser);
+                WriteDifferenceInPoints(oldUser);
             }
-            if (!AreListsEqual(newUser.CompletedGamesList, oldUser.CompletedGamesList))
+            if (!AreListsEqual(CompletedGamesList, oldUser.CompletedGamesList))
             {
-                CompareGameUrls(newUser.Username, newUser.CompletedGamesList, oldUser.CompletedGamesList, true);
+                WriteDifferencesInGameLists(oldUser.CompletedGamesList, true);
             }
-            if (!AreListsEqual(newUser.PlayedGamesList, oldUser.PlayedGamesList))
+            if (!AreListsEqual(PlayedGamesList, oldUser.PlayedGamesList))
             {
-                CompareGameUrls(newUser.Username, newUser.PlayedGamesList, oldUser.PlayedGamesList, false);
+                WriteDifferencesInGameLists(oldUser.PlayedGamesList, false);
             }
             Console.ReadLine();
         }
 
-        public static void CompareGameUrls(string newUserUsername, List<Game> newUserGames, List<Game> oldUserGames, bool comparingCompletedGames)
+        public void WriteDifferencesInGameLists(List<Game> oldUserGames, bool isComparingCompletedGames)
         {
             var oldUserGameData = new Dictionary<string, string>();
+            var newUserGames = isComparingCompletedGames ? CompletedGamesList : PlayedGamesList;
 
             foreach (Game g in oldUserGames)
             {
@@ -127,13 +146,13 @@ namespace RAScraping
             {
                 if (!oldUserGameData.ContainsKey(g.UrlSuffix))
                 {
-                    if (comparingCompletedGames)
+                    if (isComparingCompletedGames)
                     { 
-                        Console.WriteLine($"\t{newUserUsername} has recently completed {g.Name}.");
+                        Console.WriteLine($"\t{Username} has recently completed {g.Name}.");
                     }
                     else
                     {
-                        Console.WriteLine($"\t{newUserUsername}'s gameplay status in {g.Name} has recently changed.");
+                        Console.WriteLine($"\t{Username}'s gameplay status in {g.Name} has recently changed.");
                     }
                 }
                 else
@@ -143,36 +162,36 @@ namespace RAScraping
             }
             foreach (string gameName in oldUserGameData.Values)
             {
-                if (comparingCompletedGames)
+                if (isComparingCompletedGames)
                 {
-                    Console.WriteLine($"\t{gameName} was removed from {newUserUsername}'s completed games list.");
+                    Console.WriteLine($"\t{gameName} was removed from {Username}'s completed games list.");
                 }
                 else
                 {
-                    Console.WriteLine($"\t{gameName} was removed from {newUserUsername}'s played games list.");
+                    Console.WriteLine($"\t{gameName} was removed from {Username}'s played games list.");
                 }
             }
         }
 
-        public static void WriteUrlErrorMessage(string username)
+        public void WriteUrlErrorMessage()
         {
-            Console.WriteLine($"User '{username}' has a url that does not correspond to their url already stored in the json file.");
+            Console.WriteLine($"User '{Username}' has a url that does not correspond to their url already stored in the json file.");
             Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new user data.");
             Console.WriteLine($"Press enter to override the stored json file with the new user data.");
             Console.ReadLine();
         }
 
-        public static void WriteDifferenceInPoints(User newUser, User oldUser)
+        public void WriteDifferenceInPoints(User oldUser)
         {
-            string comparator = (newUser.Points < oldUser.Points) ? "gained" : "lost";
-            var pointDifference = Math.Abs(newUser.Points - oldUser.Points);
+            string comparator = (Points < oldUser.Points) ? "gained" : "lost";
+            var pointDifference = Math.Abs(Points - oldUser.Points);
             if (pointDifference == 1)
             {
-                Console.WriteLine($"\t{newUser.Username} has {comparator} {pointDifference} point.");
+                Console.WriteLine($"\t{Username} has {comparator} {pointDifference} point.");
             }
             else
             {
-                Console.WriteLine($"\t{newUser.Username} has {comparator} {pointDifference} points.");
+                Console.WriteLine($"\t{Username} has {comparator} {pointDifference} points.");
             }
         }
 
