@@ -133,46 +133,6 @@ namespace RAScraping
             Console.ReadLine();
         }
 
-        public void WriteDifferencesInGameLists(List<Game> oldUserGames, bool isComparingCompletedGames)
-        {
-            var oldUserGameData = new Dictionary<string, string>();
-            var newUserGames = isComparingCompletedGames ? CompletedGamesList : PlayedGamesList;
-
-            foreach (Game g in oldUserGames)
-            {
-                oldUserGameData.Add(g.UrlSuffix, g.Name);
-            }
-            foreach (Game g in newUserGames)
-            {
-                if (!oldUserGameData.ContainsKey(g.UrlSuffix))
-                {
-                    if (isComparingCompletedGames)
-                    { 
-                        Console.WriteLine($"\t{Username} has recently completed {g.Name}.");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"\t{Username}'s gameplay status in {g.Name} has recently changed.");
-                    }
-                }
-                else
-                {
-                    oldUserGameData.Remove(g.UrlSuffix);
-                }
-            }
-            foreach (string gameName in oldUserGameData.Values)
-            {
-                if (isComparingCompletedGames)
-                {
-                    Console.WriteLine($"\t{gameName} was removed from {Username}'s completed games list.");
-                }
-                else
-                {
-                    Console.WriteLine($"\t{gameName} was removed from {Username}'s played games list.");
-                }
-            }
-        }
-
         public void WriteUrlErrorMessage()
         {
             Console.WriteLine($"User '{Username}' has a url that does not correspond to their url already stored in the json file.");
@@ -192,6 +152,34 @@ namespace RAScraping
             else
             {
                 Console.WriteLine($"\t{Username} has {comparator} {pointDifference} points.");
+            }
+        }
+
+        public void WriteDifferencesInGameLists(List<Game> oldUserGames, bool isComparingCompletedGames)
+        {
+            var oldUserGameData = new Dictionary<string, string>();
+            var newUserGames = isComparingCompletedGames ? CompletedGamesList : PlayedGamesList;
+            var recentActionVerb = isComparingCompletedGames ? "completed" : "starting playing";
+            var gamesListTypeString = isComparingCompletedGames ? "completed" : "played";
+
+            foreach (Game g in oldUserGames)
+            {
+                oldUserGameData.Add(g.UrlSuffix, g.Name);
+            }
+            foreach (Game g in newUserGames)
+            {
+                if (!oldUserGameData.ContainsKey(g.UrlSuffix))
+                {
+                    Console.WriteLine($"\t{Username} has recently {recentActionVerb} {g.Name}.");
+                }
+                else
+                {
+                    oldUserGameData.Remove(g.UrlSuffix);
+                }
+            }
+            foreach (string gameName in oldUserGameData.Values)
+            {
+                Console.WriteLine($"\t{gameName} was removed from {Username}'s {gamesListTypeString} games list.");
             }
         }
 
