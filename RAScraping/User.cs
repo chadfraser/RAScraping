@@ -9,40 +9,32 @@ namespace RAScraping
 {
     public class User
     {
-        private static readonly string _baseUrl = "http://retroachievements.org/user/";
         private static readonly int _maxGamesToCheck = 1500;
-        public static string BaseUrl { get => _baseUrl; }
 
-        private string _username;
-        private string _url;
-        private int _points;
-        private int _retroRatioPoints;
-        private List<Game> _completedGamesList;
-        private List<Game> _playedGamesList;
-
-        public string Username { get => _username; set => _username = value; }
-        public string Url { get => _url; set => _url = value; }
-        public int Points { get => _points; set => _points = value; }
-        public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
-        public List<Game> CompletedGamesList { get => _completedGamesList; set => _completedGamesList = value; }
-        public List<Game> PlayedGamesList { get => _playedGamesList; set => _playedGamesList = value; }
-
-        public User(string username, string url)
+        public User(string username, string urlSuffix)
         {
-            this._username = username;
-            this._url = url;
-            _points = _retroRatioPoints = 0;
-            _completedGamesList = new List<Game>();
-            _playedGamesList = new List<Game>();
+            this.Username = username;
+            this.UrlSuffix = urlSuffix;
+            Points = RetroRatioPoints = 0;
+            CompletedGamesList = new List<Game>();
+            PlayedGamesList = new List<Game>();
         }
 
-        public User(string username) : this(username, $"{_baseUrl}{username}&g={_maxGamesToCheck}")
+        public User(string username) : this(username, username)
         {
         }
 
         public User() : this("", "")
         {
         }
+
+        public static string BaseUrl { get; } = "http://retroachievements.org/user/";
+        public string Username { get; set; }
+        public string UrlSuffix { get; set; }
+        public int Points { get; set; }
+        public int RetroRatioPoints { get; set; }
+        public List<Game> CompletedGamesList { get; set; }
+        public List<Game> PlayedGamesList { get; set; }
 
         public void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, Game> storedGames)
         {
@@ -57,8 +49,8 @@ namespace RAScraping
             foreach (var link in links)
             {
                 var newGame = new Game(link);
-                newGame = newGame.GetGameValueIfInDict(ref storedGames);
-                _completedGamesList.Add(newGame);
+                newGame.FillDictWithGameValue(ref storedGames);
+                CompletedGamesList.Add(newGame);
             }
         }
 
@@ -80,15 +72,15 @@ namespace RAScraping
                     continue;
                 }
                 var newGame = new Game(link);
-                newGame = newGame.GetGameValueIfInDict(ref storedGames);
-                _completedGamesList.Add(newGame);
+                newGame.FillDictWithGameValue(ref storedGames);
+                CompletedGamesList.Add(newGame);
             }
         }
 
         public static void WriteDifferencesInUsers(User newUser, User oldUser)
         {
             Console.WriteLine($"Some information on the user '{newUser.Username}' has changed since this program was last run.");
-            if (!newUser.Url.Equals(oldUser.Url))
+            if (!newUser.UrlSuffix.Equals(oldUser.UrlSuffix))
             {
                 WriteUrlErrorMessage(newUser.Username);
                 return;
@@ -115,11 +107,11 @@ namespace RAScraping
 
             foreach (Game g in oldUserGames)
             {
-                oldUserGameData.Add(g.Url, g.Name);
+                oldUserGameData.Add(g.UrlSuffix, g.Name);
             }
             foreach (Game g in newUserGames)
             {
-                if (!oldUserGameData.ContainsKey(g.Url))
+                if (!oldUserGameData.ContainsKey(g.UrlSuffix))
                 {
                     if (comparingCompletedGames)
                     { 
@@ -132,7 +124,7 @@ namespace RAScraping
                 }
                 else
                 {
-                    oldUserGameData.Remove(g.Url);
+                    oldUserGameData.Remove(g.UrlSuffix);
                 }
             }
             foreach (string gameName in oldUserGameData.Values)
@@ -195,8 +187,8 @@ namespace RAScraping
             else
             {
                 User u = (User)obj;
-                bool equalLists = AreListsEqual(_playedGamesList, u.PlayedGamesList) && AreListsEqual(_completedGamesList, u.CompletedGamesList);
-                return ((_url.Equals(u.Url)) && (_username.Equals(u.Username)) && (_points.Equals(u.Points)) && equalLists);
+                bool equalLists = AreListsEqual(PlayedGamesList, u.PlayedGamesList) && AreListsEqual(CompletedGamesList, u.CompletedGamesList);
+                return ((UrlSuffix.Equals(u.UrlSuffix)) && (Username.Equals(u.Username)) && (Points.Equals(u.Points)) && equalLists);
             }
         }
 
@@ -206,17 +198,17 @@ namespace RAScraping
             const int hashFactor = 86351;
 
             int hash = baseHash;
-            foreach (Game g in _playedGamesList)
+            foreach (Game g in PlayedGamesList)
             {
                 hash = (hash * hashFactor) ^ g.GetHashCode();
             }
-            foreach (Game g in _completedGamesList)
+            foreach (Game g in CompletedGamesList)
             {
                 hash = (hash * hashFactor) ^ g.GetHashCode();
             }
-            hash = (hash * hashFactor) ^ (!(_url is null) ? _url.GetHashCode() : 0);
-            hash = (hash * hashFactor) ^ (!(_username is null) ? _username.GetHashCode() : 0);
-            hash = (hash * hashFactor) ^ _points.GetHashCode();
+            hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(Username is null) ? Username.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ Points.GetHashCode();
             return hash;
         }
     }

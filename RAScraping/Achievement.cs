@@ -8,46 +8,25 @@ namespace RAScraping
 {
     public class Achievement
     {
-        private static readonly string _baseUrl = "http://retroachievements.org";
-        public static string BaseUrl
-        {
-            get { return _baseUrl; }
-        }
-        private string _name;
-        private string _url;
         private int _points;
         private int _retroRatioPoints;
 
-        public string Name
+        public Achievement(string name, string urlSuffix)
         {
-            get { return _name; }
-            set { _name = value; }
-        }
-        public string Url
-        {
-            get { return _url; }
-            set { _url = value; }
-        }
-        public int Points
-        {
-            get { return _points; }
-            set { _points = value; }
-        }
-        public int RetroRatioPoints
-        {
-            get { return _retroRatioPoints; }
-            set { _retroRatioPoints = value; }
-        }
-
-        public Achievement(string name, string url)
-        {
-            this._name = name;
-            this._url = url;
+            this.Name = name;
+            this.UrlSuffix = urlSuffix;
             _points = _retroRatioPoints = 0;
         }
+
         public Achievement() : this("", "")
         {
         }
+
+        public static string BaseUrl { get; } = "http://retroachievements.org";
+        public string Name { get; set; }
+        public string UrlSuffix { get; set; }
+        public int Points { get => _points; set => _points = value; }
+        public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
 
         public void FillAchievementData(HtmlNode htmlNode)
         {
@@ -62,6 +41,7 @@ namespace RAScraping
             }
             if (linkNode != null)
             {
+                // consider splitting into a separate method
                 var link = linkNode.Attributes["href"].Value;
                 var nameAndPoints = linkNode.InnerText;
                 var parts = nameAndPoints.Split(' ');
@@ -70,8 +50,8 @@ namespace RAScraping
 
                 var name = nameAndPoints.Substring(0, nameAndPoints.Length - pointsString.Length - 3);
 
-                _url = _baseUrl + link;
-                _name = name;
+                UrlSuffix = link;
+                Name = name;
                 Int32.TryParse(pointsString, out _points);
             }
         }
@@ -85,7 +65,7 @@ namespace RAScraping
             else
             {
                 Achievement a = (Achievement)obj;
-                return ((_url.Equals(a.Url)) && (_name.Equals(a.Name)) && (_points.Equals(a.Points)));
+                return ((UrlSuffix.Equals(a.UrlSuffix)) && (Name.Equals(a.Name)) && (_points.Equals(a.Points)));
             }
         }
 
@@ -95,8 +75,8 @@ namespace RAScraping
             const int hashFactor = 90989;
 
             int hash = baseHash;
-            hash = (hash * hashFactor) ^ (!(_url is null) ? _url.GetHashCode() : 0);
-            hash = (hash * hashFactor) ^ (!(_name is null) ? _name.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(Name is null) ? Name.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ _points.GetHashCode();
             return hash;
         }

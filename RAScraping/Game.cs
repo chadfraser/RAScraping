@@ -9,56 +9,16 @@ namespace RAScraping
 {
     public class Game
     {
-        private static readonly string _baseUrl = "http://retroachievements.org";
-        public static string BaseUrl
-        {
-            get { return _baseUrl; }
-        }
-
-        private string _name;
-        private string _url;
         private int _achievementCount;
         private int _totalPoints;
         private int _totalRetroRatioPoints;
-        private List<Achievement> _achievements;
-
-        public string Name
-        {
-            get => _name; 
-            set { _name = value; }
-        }
-        public string Url
-        {
-            get { return _url; }
-            set { _url = value; }
-        }
-        public int TotalPoints
-        {
-            get { return _totalPoints; }
-            set { _totalPoints = value; }
-        }
-        public int AchievementCount
-        {
-            get { return _achievementCount; }
-            set { _achievementCount = value; }
-        }
-        public int TotalRetroRatioPoints
-        {
-            get { return _totalRetroRatioPoints; }
-            set { _totalRetroRatioPoints = value; }
-        }
-        public List<Achievement> Achievements
-        {
-            get { return _achievements; }
-            set { _achievements = value; }
-        }
 
         public Game(string name, string urlSuffix)
         {
-            this._name = name;
-            this._url = _baseUrl + urlSuffix;
-            _achievementCount = _totalPoints = _totalRetroRatioPoints = 0;
-            _achievements = new List<Achievement>();
+            this.Name = name;
+            this.UrlSuffix = urlSuffix;
+            AchievementCount = _totalPoints = _totalRetroRatioPoints = 0;
+            Achievements = new List<Achievement>();
         }
 
         public Game(string urlSuffix) : this("", urlSuffix)
@@ -69,17 +29,23 @@ namespace RAScraping
         {
         }
 
+        public static string BaseUrl { get; } = "http://retroachievements.org";
+        public string Name { get; set; }
+        public string UrlSuffix { get; set; }
+        public List<Achievement> Achievements { get; set; }
+        public int AchievementCount { get => _achievementCount; set => _achievementCount = value; }
+        public int TotalRetroRatioPoints { get => _totalRetroRatioPoints; set => _totalRetroRatioPoints = value; }
+        public int TotalPoints { get => _totalPoints; set => _totalPoints = value; }
+
         public void FillGameData(HtmlDocument doc)
         {
             HtmlNode nameNode = doc.DocumentNode.SelectSingleNode("//*[@class='longheader']");
             HtmlNode retroPointsStringNode = doc.DocumentNode.SelectSingleNode("//*[@id='achievement']//*[@class='TrueRatio']");
-
             HtmlNodeCollection boldTagNodes = doc.DocumentNode.SelectNodes("//*[@id='achievement']//b");
-
 
             if (nameNode != null)
             {
-                _name = nameNode.InnerText;
+                Name = nameNode.InnerText;
             }
             if (retroPointsStringNode != null)
             {
@@ -95,10 +61,10 @@ namespace RAScraping
                 Int32.TryParse(totalPointsString, out _totalPoints);
             }
 
-            BuildAchievements(doc);
+            FillAchievements(doc);
         }
 
-        public void BuildAchievements(HtmlDocument doc)
+        public void FillAchievements(HtmlDocument doc)
         {
             HtmlNodeCollection achievementNodes = doc.DocumentNode.SelectNodes("//*[@class='achievementdata']");
 
@@ -106,23 +72,18 @@ namespace RAScraping
             {
                 var newAchievement = new Achievement();
                 newAchievement.FillAchievementData(achievementNode);
-                _achievements.Add(newAchievement);
+                Achievements.Add(newAchievement);
             }
         }
 
-        public Game GetGameValueIfInDict(ref Dictionary<string, Game> storedGames)
+        public void FillDictWithGameValue(ref Dictionary<string, Game> storedGames)
         {
-            if (!storedGames.ContainsKey(_url))
+            if (!storedGames.ContainsKey(UrlSuffix))
             {
-                var newDoc = Program.LoadDocument(_url);
+                var newDoc = Program.LoadDocument(UrlSuffix);
                 FillGameData(newDoc);
                 System.Threading.Thread.Sleep(2000);
-                storedGames[_url] = this;
-                return this;
-            }
-            else
-            {
-                return storedGames[_url];
+                storedGames[UrlSuffix] = this;
             }
         }
 
@@ -135,18 +96,18 @@ namespace RAScraping
             else
             {
                 Game g = (Game)obj;
-                if (_achievements.Count != g.Achievements.Count)
+                if (Achievements.Count != g.Achievements.Count)
                 {
                     return false;
                 }
-                for (int i = 0; i < _achievements.Count; i++)
+                for (int i = 0; i < Achievements.Count; i++)
                 {
-                    if (!_achievements[i].Equals(g.Achievements[i]))
+                    if (!Achievements[i].Equals(g.Achievements[i]))
                     {
                         return false;
                     }
                 }
-                return ((_url.Equals(g.Url)) && (_name.Equals(g.Name)) && (_totalPoints.Equals(g.TotalPoints)));
+                return ((UrlSuffix.Equals(g.UrlSuffix)) && (Name.Equals(g.Name)) && (_totalPoints.Equals(g.TotalPoints)));
             }
         }
 
@@ -156,13 +117,13 @@ namespace RAScraping
             const int hashFactor = 95651;
 
             int hash = baseHash;
-            foreach (Achievement ach in _achievements)
+            foreach (Achievement ach in Achievements)
             {
                 hash = (hash * hashFactor) ^ ach.GetHashCode();
             }
-            hash = (hash * hashFactor) ^ (!(_url is null) ? _url.GetHashCode() : 0);
-            hash = (hash * hashFactor) ^ (!(_name is null) ? _name.GetHashCode() : 0);
-            hash = (hash * hashFactor) ^ _achievementCount.GetHashCode();
+            hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ (!(Name is null) ? Name.GetHashCode() : 0);
+            hash = (hash * hashFactor) ^ AchievementCount.GetHashCode();
             hash = (hash * hashFactor) ^ _totalPoints.GetHashCode();
             return hash;
         }
