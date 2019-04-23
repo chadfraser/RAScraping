@@ -142,7 +142,7 @@ namespace RAScraping
 
         public void WriteDifferenceInPoints(Game oldGame)
         {
-            var comparator = (TotalPoints < oldGame.TotalPoints) ? "gained" : "lost";
+            var comparator = (TotalPoints > oldGame.TotalPoints) ? "gained" : "lost";
             var pointDifference = Math.Abs(TotalPoints - oldGame.TotalPoints);
             if (pointDifference == 1)
             {

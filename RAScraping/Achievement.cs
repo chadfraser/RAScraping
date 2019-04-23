@@ -70,7 +70,7 @@ namespace RAScraping
 
         public void WriteDifferenceInPoints(Achievement oldAchievement)
         {
-            var comparator = (Points < oldAchievement.Points) ? "gained" : "lost";
+            var comparator = (Points > oldAchievement.Points) ? "gained" : "lost";
             var pointDifference = Math.Abs(Points - oldAchievement.Points);
             if (pointDifference == 1)
             {
