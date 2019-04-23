@@ -42,7 +42,9 @@ namespace RAScraping
         public void FillPlayerData(ref Dictionary<string, string> checkedGames)
         {
             HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
+            Console.WriteLine(RetroRatioPoints);
             FillPoints(doc);
+            Console.WriteLine(RetroRatioPoints);
             FillCompletedGames(doc, ref checkedGames);
             FillPlayedGames(doc, ref checkedGames);
         }
@@ -55,13 +57,15 @@ namespace RAScraping
             if (pointsNode != null)
             {
                 var pointsString = pointsNode.InnerText;
-                pointsString = pointsString.Substring(1, pointsString.Length - 9);
+                var usernameText = (pointsNode.SelectSingleNode("//strong") != null) ? pointsNode.SelectSingleNode("//strong").InnerText : "---";
+                var retroPointsText = (retroPointsNode != null) ? retroPointsNode.InnerText : "---";
+                pointsString = pointsString.Replace(usernameText, "").Replace(retroPointsText, "");
+                pointsString = pointsString.Substring(7, pointsString.Length - 15);
                 Int32.TryParse(pointsString, out _points);
             }
-
             if (retroPointsNode != null)
             {
-                var retroPointsString = retroPointsNode.InnerText;
+                var retroPointsString = retroPointsNode.InnerText.Trim();
                 retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
                 Int32.TryParse(retroPointsString, out _retroRatioPoints);
             }
@@ -144,7 +148,7 @@ namespace RAScraping
 
         public void WriteDifferenceInPoints(User oldUser)
         {
-            var comparator = (Points < oldUser.Points) ? "gained" : "lost";
+            var comparator = (Points > oldUser.Points) ? "gained" : "lost";
             var pointDifference = Math.Abs(Points - oldUser.Points);
             if (pointDifference == 1)
             {
