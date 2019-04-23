@@ -15,8 +15,8 @@ namespace RAScraping
     {
         private static string mainDirectory;
         private static string dataDirectory;
-        private static string userDataDirectory; /*= "../../data/ra_user_data.json";*/
-        private static string gameDataDirectory;
+        public static string userDataDirectory; /*= "../../data/ra_user_data.json";*/
+        public static string gameDataDirectory;
         private static bool oneUserPerFile = true;
 
         static void Main(string[] args)
@@ -89,6 +89,11 @@ namespace RAScraping
                     newGame.WriteDifferencesInGames(oldGame);
                     changedGamesData[url] = newGame.Name;
                 }
+                else if (newGame.TotalRetroRatioPoints != oldGame.TotalRetroRatioPoints)
+                {
+                    newGame.SaveData();
+                }
+
                 checkedGamesData[url] = newGame.Name;
             }
         }

@@ -42,9 +42,7 @@ namespace RAScraping
         public void FillPlayerData(ref Dictionary<string, string> checkedGames)
         {
             HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
-            Console.WriteLine(RetroRatioPoints);
             FillPoints(doc);
-            Console.WriteLine(RetroRatioPoints);
             FillCompletedGames(doc, ref checkedGames);
             FillPlayedGames(doc, ref checkedGames);
         }
@@ -105,8 +103,9 @@ namespace RAScraping
                     gameDict[link] = title;
                     if (!checkedGames.ContainsKey(link))
                     {
-                        // save game data
-                        checkedGames[link] = title; // data
+                        var newGame = new Game(link);
+                        newGame.SaveData();
+                        checkedGames[link] = title;
                     }
                 }
             }
