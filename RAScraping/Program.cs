@@ -75,7 +75,7 @@ namespace RAScraping
             string[] fileArray = Directory.GetFiles(gameDataDirectory, "*.json");
             foreach (var filename in fileArray)
             {
-                var urlNumber = filename.Split(' ').Last();
+                var urlNumber = filename.Split(' ').Last().Replace(".json", "");
                 var url = $"/Game/{urlNumber}";
                 var newGame = new Game(url);
 
