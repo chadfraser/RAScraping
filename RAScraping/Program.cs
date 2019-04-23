@@ -103,6 +103,7 @@ namespace RAScraping
 
                 if (oneUserPerFile)
                 {
+                    Console.WriteLine(newUser.RetroRatioPoints);
                     if (!File.Exists(Path.Combine(userDataDirectory, $"{username}.json")))
                     {
                         WriteSingleUserData(newUser);
@@ -153,6 +154,10 @@ namespace RAScraping
             if (!newUser.Equals(tempUser))
             {
                 newUser.WriteDifferencesInUsers(tempUser, changedGamesData);
+                WriteSingleUserData(newUser);
+            }
+            else if (newUser.RetroRatioPoints != tempUser.RetroRatioPoints)
+            {
                 WriteSingleUserData(newUser);
             }
         }
