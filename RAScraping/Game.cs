@@ -1,6 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Summary description for Class1
@@ -18,7 +19,11 @@ namespace RAScraping
             this.Name = name;
             this.UrlSuffix = urlSuffix;
             AchievementCount = _totalPoints = _totalRetroRatioPoints = 0;
-            Achievements = new List<Achievement>();
+            AchievementsData = new Dictionary<string, Achievement>();
+            if (!string.IsNullOrEmpty(UrlSuffix))
+            {
+                FillGameData();
+            }
         }
 
         public Game(string urlSuffix) : this("", urlSuffix)
@@ -32,13 +37,15 @@ namespace RAScraping
         public static string BaseUrl { get; } = "http://retroachievements.org";
         public string Name { get; set; }
         public string UrlSuffix { get; set; }
-        public List<Achievement> Achievements { get; set; }
+        public Dictionary<string, Achievement> AchievementsData  { get; set; }
         public int AchievementCount { get => _achievementCount; set => _achievementCount = value; }
         public int TotalRetroRatioPoints { get => _totalRetroRatioPoints; set => _totalRetroRatioPoints = value; }
         public int TotalPoints { get => _totalPoints; set => _totalPoints = value; }
 
-        public void FillGameData(HtmlDocument doc)
+        public void FillGameData()
         {
+            HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
+
             HtmlNode nameNode = doc.DocumentNode.SelectSingleNode("//*[@class='longheader']");
             HtmlNode retroPointsStringNode = doc.DocumentNode.SelectSingleNode("//*[@id='achievement']//*[@class='TrueRatio']");
             HtmlNodeCollection boldTagNodes = doc.DocumentNode.SelectNodes("//*[@id='achievement']//b");
@@ -72,7 +79,7 @@ namespace RAScraping
             {
                 var newAchievement = new Achievement();
                 newAchievement.FillAchievementData(achievementNode);
-                Achievements.Add(newAchievement);
+                AchievementsData[newAchievement.UrlSuffix] = newAchievement;
             }
         }
 
@@ -80,10 +87,84 @@ namespace RAScraping
         {
             if (!storedGames.ContainsKey(UrlSuffix))
             {
-                var newDoc = Program.LoadDocument(UrlSuffix);
-                FillGameData(newDoc);
+                FillGameData();
                 System.Threading.Thread.Sleep(2000);
                 storedGames[UrlSuffix] = this;
+            }
+        }
+
+        public void WriteDifferencesInGames(Game oldGame)
+        {
+            if (UrlSuffix != oldGame.UrlSuffix)
+            {
+                WriteUrlErrorMessage();
+                return;
+            }
+            if (Name != oldGame.Name)
+            {
+                Console.WriteLine($"'{oldGame.Name}' has been updated to '{Name}'.");
+            }
+            if (TotalPoints != oldGame.TotalPoints)
+            {
+                WriteDifferenceInPoints(oldGame);
+            }
+            if (AchievementCount != oldGame.AchievementCount)
+            {
+                WriteDifferenceInAchievementCount(oldGame);
+            }
+            foreach (var achievement in oldGame.AchievementsData.Except(AchievementsData))
+            {
+                if (!AchievementsData.ContainsKey(achievement.Key))
+                {
+                    Console.WriteLine($"{Name} has recently removed the achievement '{achievement.Value.Name}'.");
+                }
+            }
+            foreach (var achievement in AchievementsData.Except(oldGame.AchievementsData))
+            {
+                if (!oldGame.AchievementsData.ContainsKey(achievement.Key))
+                {
+                    Console.WriteLine($"{Name} has recently added the achievement '{achievement.Value.Name}'.");
+                }
+                else
+                {
+                    achievement.Value.WriteDifferencesInAchievements(oldGame.AchievementsData[achievement.Key]);
+                }
+            }
+        }
+
+        public void WriteUrlErrorMessage()
+        {
+            Console.WriteLine($"Game '{Name}' has a url that does not correspond to its url already stored in the json file.");
+            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new game data.");
+            Console.WriteLine($"Press enter to override the stored json file with the new game data.");
+            Console.ReadLine();
+        }
+
+        public void WriteDifferenceInPoints(Game oldGame)
+        {
+            var comparator = (TotalPoints < oldGame.TotalPoints) ? "gained" : "lost";
+            var pointDifference = Math.Abs(TotalPoints - oldGame.TotalPoints);
+            if (pointDifference == 1)
+            {
+                Console.WriteLine($"\t{Name} has {comparator} {pointDifference} point.");
+            }
+            else
+            {
+                Console.WriteLine($"\t{Name} has {comparator} {pointDifference} points.");
+            }
+        }
+
+        public void WriteDifferenceInAchievementCount(Game oldGame)
+        {
+            var comparator = (AchievementCount < oldGame.AchievementCount) ? "gained" : "lost";
+            var countDifference = Math.Abs(AchievementCount - oldGame.AchievementCount);
+            if (countDifference == 1)
+            {
+                Console.WriteLine($"\t{Name} has {comparator} {countDifference} point.");
+            }
+            else
+            {
+                Console.WriteLine($"\t{Name} has {comparator} {countDifference} points.");
             }
         }
 
@@ -96,16 +177,9 @@ namespace RAScraping
             else
             {
                 Game g = (Game)obj;
-                if (Achievements.Count != g.Achievements.Count)
+                if (AchievementsData.Except(g.AchievementsData).Any())
                 {
                     return false;
-                }
-                for (int i = 0; i < Achievements.Count; i++)
-                {
-                    if (!Achievements[i].Equals(g.Achievements[i]))
-                    {
-                        return false;
-                    }
                 }
                 return ((UrlSuffix.Equals(g.UrlSuffix)) && (Name.Equals(g.Name)) && (_totalPoints.Equals(g.TotalPoints)));
             }
@@ -117,10 +191,10 @@ namespace RAScraping
             const int hashFactor = 95651;
 
             int hash = baseHash;
-            foreach (Achievement ach in Achievements)
-            {
-                hash = (hash * hashFactor) ^ ach.GetHashCode();
-            }
+            //foreach (Achievement ach in Achievements)
+            //{
+            //    hash = (hash * hashFactor) ^ ach.GetHashCode();
+            //}
             hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ (!(Name is null) ? Name.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ AchievementCount.GetHashCode();

@@ -6,39 +6,61 @@ using System.Threading.Tasks;
 using HtmlAgilityPack;
 using System.IO;
 using Newtonsoft.Json;
+using System.Reflection;
 //using testing;
 
 namespace RAScraping
 {
     class Program
     {
-        private static readonly string userDataFilepath = "../../data/ra_user_data.json";
-        private static readonly string absoluteUserDataPath = Path.GetFullPath(userDataFilepath);
-        private static readonly string absoluteUserDataDirectory = Path.GetDirectoryName(absoluteUserDataPath);
+        private static string mainDirectory;
+        private static string dataDirectory;
+        private static string userDataDirectory; /*= "../../data/ra_user_data.json";*/
+        private static string gameDataDirectory;
         private static bool oneUserPerFile = true;
 
         static void Main(string[] args)
         {
+            var checkedGamesData = new Dictionary<string, string>();
+            var changedGamesData = new Dictionary<string, string>();
+
             //TestData.Test();
+            InitializePaths();
+            UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
+
             try
             {
-                using (StreamReader r = new StreamReader("../../data/usernames.json"))
+                using (StreamReader r = new StreamReader(Path.Combine(dataDirectory, "main_data.json")))
                 {
                     var json = r.ReadToEnd();
                     RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
                     if (rootObject.Usernames is null)
                     {
-                        Console.WriteLine("The list of usernames in the 'usernames.json' file is empty.");
+                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty.");
+                        Console.ReadLine();
                         Environment.Exit(0);
                     }
-                    CreateAndWriteUserData(rootObject);
+                    UpdateTrackedUserData(rootObject, ref checkedGamesData, ref changedGamesData);
                 }
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine("The file 'usernames.json' was not found in the appropriate data folder.");
+                Console.WriteLine("The file 'main_data.json' was not found in the appropriate data folder.");
+                Console.ReadLine();
                 Environment.Exit(0);
             }
+            Console.ReadLine();
+        }
+
+        static void InitializePaths()
+        {
+            mainDirectory = Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory.ToString()).ToString()).ToString();
+            dataDirectory = Path.Combine(mainDirectory, "data");
+            userDataDirectory = Path.Combine(dataDirectory, "users");
+            gameDataDirectory = Path.Combine(dataDirectory, "games");
+            Directory.CreateDirectory(dataDirectory);
+            Directory.CreateDirectory(userDataDirectory);
+            Directory.CreateDirectory(gameDataDirectory);
         }
 
         public static HtmlDocument LoadDocument(string url)
@@ -48,27 +70,46 @@ namespace RAScraping
             return doc;
         }
 
-        static void CreateAndWriteUserData(RootObject rootObject)
+        static void UpdateTrackedGameData(ref Dictionary<string, string> checkedGamesData, ref Dictionary<string, string> changedGamesData)
+        {
+            string[] fileArray = Directory.GetFiles(gameDataDirectory, "*.json");
+            foreach (var filename in fileArray)
+            {
+                var url = $"/Game/{filename}";
+                var newGame = new Game(url);
+
+                Game oldGame;
+                using (StreamReader r = new StreamReader(Path.Combine(gameDataDirectory, filename)))
+                {
+                    var json = r.ReadToEnd();
+                    oldGame = JsonConvert.DeserializeObject<Game>(json);
+                }
+                if (!oldGame.Equals(newGame))
+                {
+                    newGame.WriteDifferencesInGames(oldGame);
+                    changedGamesData[url] = newGame.Name;
+                }
+                checkedGamesData[url] = newGame.Name;
+            }
+        }
+
+        static void UpdateTrackedUserData(RootObject rootObject, ref Dictionary<string, string> checkedGamesData, ref Dictionary<string, string> changedGamesData)
         {
             var users = new List<User>();
-            var storedGames = new Dictionary<string, Game>();
 
             foreach (string username in rootObject.Usernames)
             {
-                User newUser = BuildSingleUserData(username, ref storedGames);
+                User newUser = BuildSingleUserData(username, ref checkedGamesData);
 
                 if (oneUserPerFile)
                 {
-                    var newUserFullPath = Path.GetFullPath($"../../data/users/{newUser.Username}.json");
-                    var newUserDataDirectory = Path.GetDirectoryName(newUserFullPath);
-                    Directory.CreateDirectory(newUserDataDirectory);
-                    if (!File.Exists($"../../data/users/{username}.json"))
+                    if (!File.Exists(Path.Combine(userDataDirectory, $"{username}.json")))
                     {
                         WriteSingleUserData(newUser);
                     }
                     else
                     {
-                        CompareSingleUserData(newUser);
+                        CompareSingleUserData(newUser, changedGamesData);
                     }
                 }
                 users.Add(newUser);
@@ -76,36 +117,34 @@ namespace RAScraping
 
             if (!oneUserPerFile)
             {
-                Directory.CreateDirectory(absoluteUserDataPath);
-                if (!File.Exists(userDataFilepath))
+                if (!File.Exists(Path.Combine(dataDirectory, "ra_user_data.json")))
                 {
                     WriteAllUserData(users);
                 }
                 else
                 {
-                    CompareAllUserData(users);
+                    CompareAllUserData(users, changedGamesData);
                 }
             }
         }
 
-        static User BuildSingleUserData(string username, ref Dictionary<string, Game> storedGames)
+        static User BuildSingleUserData(string username, ref Dictionary<string, string> checkedGamesData)
         {
             var newUser = new User(username);
-            newUser.FillPlayerData(ref storedGames);
+            newUser.FillPlayerData(ref checkedGamesData);
             return newUser;
         }
 
         static void WriteSingleUserData(User newUser)
         {
-
             string jsonSerialize = JsonConvert.SerializeObject(newUser, Formatting.Indented);
-            File.WriteAllText($"../../data/users/{newUser.Username}.json", jsonSerialize);
+            File.WriteAllText(Path.Combine(userDataDirectory, $"{newUser.Username}.json"), jsonSerialize);
         }
 
-        static void CompareSingleUserData(User newUser)
+        static void CompareSingleUserData(User newUser, Dictionary<string, string> changedGamesData)
         {
             User tempUser;
-            using (StreamReader r = new StreamReader($"../../data/users/{newUser.Username}.json"))
+            using (StreamReader r = new StreamReader(Path.Combine(userDataDirectory, $"{newUser.Username}.json")))
             {
                 var json = r.ReadToEnd();
                 tempUser = JsonConvert.DeserializeObject<User>(json);
@@ -113,7 +152,7 @@ namespace RAScraping
 
             if (!newUser.Equals(tempUser))
             {
-                newUser.WriteDifferencesInUsers(tempUser);
+                newUser.WriteDifferencesInUsers(tempUser, changedGamesData);
                 WriteSingleUserData(newUser);
             }
         }
@@ -121,15 +160,15 @@ namespace RAScraping
         static void WriteAllUserData(List<User> users)
         {
             string jsonSerialize = JsonConvert.SerializeObject(users, Formatting.Indented);
-            File.WriteAllText(userDataFilepath, jsonSerialize);
+            File.WriteAllText(Path.Combine(dataDirectory, "ra_user_data.json"), jsonSerialize);
         }
 
-        static void CompareAllUserData(List<User> newUsers)
+        static void CompareAllUserData(List<User> newUsers, Dictionary<string, string> changedGamesData)
         {
             Dictionary<string, User> currentUsers;
             var finalUsers = new List<User>();
 
-            using (StreamReader r = new StreamReader(userDataFilepath))
+            using (StreamReader r = new StreamReader(Path.Combine(dataDirectory, "ra_user_data.json")))
             {
                 var json = r.ReadToEnd();
                 var tempList = new HashSet<User>(JsonConvert.DeserializeObject<List<User>>(json));
@@ -144,7 +183,7 @@ namespace RAScraping
                 }
                 else if (!currentUsers[user.UrlSuffix].Equals(user))
                 {
-                    user.WriteDifferencesInUsers(currentUsers[user.UrlSuffix]);
+                    user.WriteDifferencesInUsers(currentUsers[user.UrlSuffix], changedGamesData);
                 }
                 finalUsers.Add(user);
             }

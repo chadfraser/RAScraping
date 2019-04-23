@@ -56,6 +56,32 @@ namespace RAScraping
             }
         }
 
+        public void WriteDifferencesInAchievements(Achievement oldAchievement)
+        {
+            if (Name != oldAchievement.Name)
+            {
+                Console.WriteLine($"'{oldAchievement.Name}' has been updated to '{Name}'.");
+            }
+            if (Points != oldAchievement.Points)
+            {
+                WriteDifferenceInPoints(oldAchievement);
+            }
+        }
+
+        public void WriteDifferenceInPoints(Achievement oldAchievement)
+        {
+            var comparator = (Points < oldAchievement.Points) ? "gained" : "lost";
+            var pointDifference = Math.Abs(Points - oldAchievement.Points);
+            if (pointDifference == 1)
+            {
+                Console.WriteLine($"\tAchievement '{Name}' has {comparator} {pointDifference} point.");
+            }
+            else
+            {
+                Console.WriteLine($"\tAchievement '{Name}' has {comparator} {pointDifference} points.");
+            }
+        }
+
         public override bool Equals(Object obj)
         {
             if ((obj is null) || !this.GetType().Equals(obj.GetType()))

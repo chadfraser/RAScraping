@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 /// <summary>
@@ -18,8 +19,8 @@ namespace RAScraping
             this.Username = username;
             this.UrlSuffix = urlSuffix;
             Points = RetroRatioPoints = 0;
-            CompletedGamesUrls = new HashSet<string>();
-            PlayedGamesUrls = new HashSet<string>();
+            CompletedGamesData = new Dictionary<string, string>();
+            PlayedGamesData = new Dictionary<string, string>();
         }
 
         public User(string username) : this(username, username)
@@ -35,15 +36,15 @@ namespace RAScraping
         public string UrlSuffix { get; set; }
         public int Points { get => _points; set => _points = value; }
         public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
-        public HashSet<string> CompletedGamesUrls { get; set; }
-        public HashSet<string> PlayedGamesUrls { get; set; }
+        public Dictionary<string, string> CompletedGamesData { get; set; }
+        public Dictionary<string, string> PlayedGamesData { get; set; }
 
-        public void FillPlayerData()
+        public void FillPlayerData(ref Dictionary<string, string> checkedGames)
         {
             HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
             FillPoints(doc);
-            FillCompletedGames(doc);
-            FillPlayedGames(doc);
+            FillCompletedGames(doc, ref checkedGames);
+            FillPlayedGames(doc, ref checkedGames);
         }
 
         public void FillPoints(HtmlDocument doc)
@@ -66,23 +67,23 @@ namespace RAScraping
             }
         }
 
-        public void FillCompletedGames(HtmlDocument doc)
+        public void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
         {
             var xPath = "//div[@class='trophyimage']//a";
-            CompletedGamesUrls = BuildGameUrlsSet(doc, xPath, new HashSet<string>());
+            CompletedGamesData = BuildGameDict(doc, xPath, new HashSet<string>(), ref checkedGames);
         }
 
-        public void FillPlayedGames(HtmlDocument doc)
+        public void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
         {
-            var completedGamesSet = new HashSet<string>(CompletedGamesUrls);
+            var completedGamesSet = new HashSet<string>(CompletedGamesData.Keys);
 
             var xPath = "//div[@id='usercompletedgamescomponent']//td[@class='']//a";
-            PlayedGamesUrls = BuildGameUrlsSet(doc, xPath, completedGamesSet);
+            PlayedGamesData = BuildGameDict(doc, xPath, completedGamesSet, ref checkedGames);
         }
 
-        public HashSet<string> BuildGameUrlsSet(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude)
+        public Dictionary<string, string> BuildGameDict(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude, ref Dictionary<string, string> checkedGames)
         {
-            var links = new HashSet<string>();
+            var gameDict = new Dictionary<string, string>();
 
             var htmlNodes = doc.DocumentNode.SelectNodes(xPath);
             foreach (var node in htmlNodes)
@@ -90,26 +91,25 @@ namespace RAScraping
                 var link = node.Attributes["href"].Value;
                 if (!urlsToExclude.Contains(link))
                 {
-                    links.Add(link);
+                    var title = node.InnerText;
+                    if (title is null)
+                    {
+                        var titleNode = node.SelectSingleNode("//image/@title");
+                        title = titleNode.Attributes["title"].Value;
+                        title = title.Substring(title.IndexOf(' ') + 1);
+                    }
+                    gameDict[link] = title;
+                    if (!checkedGames.ContainsKey(link))
+                    {
+                        // save game data
+                        checkedGames[link] = title; // data
+                    }
                 }
             }
-            return links;
-
-            //foreach (var link in links)
-            //{
-            //    if (urlsToExclude.Contains(link))
-            //    {
-            //        continue;
-            //    }
-            //    var newGame = new Game(link);
-            //    newGame.FillDictWithGameValue(ref storedGames);
-            //    gamesList.Add(newGame);
-            //}
-
-            //return gamesList;
+            return gameDict;
         }
 
-        public void WriteDifferencesInUsers(User oldUser, ref HashSet<string> storedGameUrls, ref HashSet<string> urlsOfChangedGames)
+        public void WriteDifferencesInUsers(User oldUser, Dictionary<string, string> dictOfChangedGames)
         {
             Console.WriteLine($"Some information on the user '{Username}' has changed since this program was last run.");
             if (!UrlSuffix.Equals(oldUser.UrlSuffix))
@@ -122,15 +122,15 @@ namespace RAScraping
             {
                 WriteDifferenceInPoints(oldUser);
             }
-            if (!CompletedGamesUrls.SetEquals(oldUser.CompletedGamesUrls))
+            if (!AreDictsEqual(CompletedGamesData, oldUser.CompletedGamesData))
             {
-                WriteDifferencesInGameLists(oldUser.CompletedGamesUrls, true);
+                WriteDifferencesInGameDicts(oldUser.CompletedGamesData, true);
             }
-            if (!PlayedGamesUrls.SetEquals(oldUser.PlayedGamesUrls))
+            if (!AreDictsEqual(PlayedGamesData, oldUser.PlayedGamesData))
             {
-                WriteDifferencesInGameLists(oldUser.PlayedGamesUrls, false);
+                WriteDifferencesInGameDicts(oldUser.PlayedGamesData, false);
             }
-            //foreach (var url in )
+            WritePlayedGamesThatHaveChanged(dictOfChangedGames);
             Console.ReadLine();
         }
 
@@ -144,7 +144,7 @@ namespace RAScraping
 
         public void WriteDifferenceInPoints(User oldUser)
         {
-            string comparator = (Points < oldUser.Points) ? "gained" : "lost";
+            var comparator = (Points < oldUser.Points) ? "gained" : "lost";
             var pointDifference = Math.Abs(Points - oldUser.Points);
             if (pointDifference == 1)
             {
@@ -156,48 +156,46 @@ namespace RAScraping
             }
         }
 
-        public void WriteDifferencesInGameLists(HashSet<string> oldUserGameUrls, bool isComparingCompletedGames)
+        public void WriteDifferencesInGameDicts(Dictionary<string, string> oldUserGameDict, bool isComparingCompletedGames)
         {
-            var oldUserGameData = new HashSet<string>();
-            var newUserGames = isComparingCompletedGames ? CompletedGamesUrls : PlayedGamesUrls;
+            var newUserGames = isComparingCompletedGames ? CompletedGamesData : PlayedGamesData;
             var recentActionVerb = isComparingCompletedGames ? "completed" : "starting playing";
             var gamesListTypeString = isComparingCompletedGames ? "completed" : "played";
 
-            foreach (var url in oldUserGameUrls)
+            foreach (string url in newUserGames.Keys)
             {
-                oldUserGameData.Add(url);
-            }
-            //    foreach (Game g in newUserGames)
-            //    {
-            //        if (!oldUserGameData.ContainsKey(g.UrlSuffix))
-            //        {
-            //            Console.WriteLine($"\t{Username} has recently {recentActionVerb} {g.Name}.");
-            //        }
-            //        else
-            //        {
-            //            oldUserGameData.Remove(g.UrlSuffix);
-            //        }
-            //    }
-            //    foreach (string gameName in oldUserGameData.Values)
-            //    {
-            //        Console.WriteLine($"\t{gameName} was removed from {Username}'s {gamesListTypeString} games list.");
-            //    }
-        }
-
-        private static bool AreListsEqual(List<Game> list1, List<Game> list2)
-        {
-            if (list1.Count != list2.Count)
-            {
-                return false;
-            }
-            for (var i = 0; i < list1.Count; i++)
-            {
-                if (!list2[i].Equals(list1[i]))
+                if (!oldUserGameDict.ContainsKey(url))
                 {
-                    return false;
+                    Console.WriteLine($"\t{Username} has recently {recentActionVerb} '{newUserGames[url]}'.");
+                }
+                else
+                {
+                    oldUserGameDict.Remove(url);
                 }
             }
-            return true;
+            foreach (string gameName in oldUserGameDict.Values)
+            {
+                Console.WriteLine($"\t{gameName} was removed from {Username}'s {gamesListTypeString} games list.");
+            }
+        }
+        private void WritePlayedGamesThatHaveChanged(Dictionary<string, string> dictOfChangedGames)
+        {
+            foreach (var url in dictOfChangedGames.Keys)
+            {
+                if (CompletedGamesData.ContainsKey(url))
+                {
+                    Console.WriteLine($"'{dictOfChangedGames[url]}', which has changed recently, was in {Username}'s completed games list.");
+                }
+                else if (PlayedGamesData.ContainsKey(url))
+                {
+                    Console.WriteLine($"'{dictOfChangedGames[url]}', which has changed recently, was in {Username}'s played games list.");
+                }
+            }
+        }
+
+        private static bool AreDictsEqual(Dictionary<string, string> dict1, Dictionary<string, string> dict2)
+        {
+            return !dict1.Except(dict2).Any();
         }
 
         public override bool Equals(Object obj)
@@ -209,9 +207,9 @@ namespace RAScraping
             else
             {
                 User u = (User)obj;
-                //bool equalLists = AreListsEqual(PlayedGamesList, u.PlayedGamesList) && AreListsEqual(CompletedGamesList, u.CompletedGamesList);
-                return ((UrlSuffix.Equals(u.UrlSuffix)) && (Username.Equals(u.Username)) && (Points.Equals(u.Points)));
-                    //&& equalLists);
+                return ((UrlSuffix.Equals(u.UrlSuffix)) && (Username.Equals(u.Username)) && (Points.Equals(u.Points)) &&
+                    (AreDictsEqual(PlayedGamesData, u.PlayedGamesData)) &&
+                    (AreDictsEqual(CompletedGamesData, u.CompletedGamesData)));
             }
         }
 
@@ -220,14 +218,14 @@ namespace RAScraping
             const int baseHash = 7013;
             const int hashFactor = 86351;
 
-            int hash = baseHash;
-            //foreach (Game g in PlayedGamesList)
+            var hash = baseHash;
+            //foreach (string url in PlayedGamesUrlsAndNames)
             //{
-            //    hash = (hash * hashFactor) ^ g.GetHashCode();
+            //    hash = (hash * hashFactor) ^ url.GetHashCode();
             //}
-            //foreach (Game g in CompletedGamesList)
+            //foreach (string url in CompletedGamesUrlsAndNames)
             //{
-            //    hash = (hash * hashFactor) ^ g.GetHashCode();
+            //    hash = (hash * hashFactor) ^ url.GetHashCode();
             //}
             hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ (!(Username is null) ? Username.GetHashCode() : 0);
