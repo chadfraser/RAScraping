@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// Summary description for Class1
@@ -173,8 +174,10 @@ namespace RAScraping
         public void SaveData()
         {
             var urlSuffixNumber = UrlSuffix.Substring(6, UrlSuffix.Length - 6);
+            var title = $"{Name} {urlSuffixNumber}";
+            title = Regex.Replace(title, "[/<>:\"\\|?*]", "");
             string jsonSerialize = JsonConvert.SerializeObject(this, Formatting.Indented);
-            File.WriteAllText(Path.Combine(Program.gameDataDirectory, $"{urlSuffixNumber}.json"), jsonSerialize);
+            File.WriteAllText(Path.Combine(Program.gameDataDirectory, $"{title}.json"), jsonSerialize);
         }
 
         public override bool Equals(Object obj)

@@ -15,7 +15,7 @@ namespace RAScraping
     {
         private static string mainDirectory;
         private static string dataDirectory;
-        public static string userDataDirectory; /*= "../../data/ra_user_data.json";*/
+        public static string userDataDirectory;
         public static string gameDataDirectory;
         private static bool oneUserPerFile = true;
 
@@ -75,7 +75,8 @@ namespace RAScraping
             string[] fileArray = Directory.GetFiles(gameDataDirectory, "*.json");
             foreach (var filename in fileArray)
             {
-                var url = $"/Game/{filename}";
+                var urlNumber = filename.Split(' ').Last();
+                var url = $"/Game/{urlNumber}";
                 var newGame = new Game(url);
 
                 Game oldGame;
@@ -108,7 +109,6 @@ namespace RAScraping
 
                 if (oneUserPerFile)
                 {
-                    Console.WriteLine(newUser.RetroRatioPoints);
                     if (!File.Exists(Path.Combine(userDataDirectory, $"{username}.json")))
                     {
                         WriteSingleUserData(newUser);
