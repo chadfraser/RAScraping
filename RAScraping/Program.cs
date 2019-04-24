@@ -26,7 +26,7 @@ namespace RAScraping
 
             //TestData.Test();
             InitializePaths();
-            UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
+            //UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
 
             try
             {

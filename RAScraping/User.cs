@@ -94,9 +94,10 @@ namespace RAScraping
                 if (!urlsToExclude.Contains(link))
                 {
                     var title = node.InnerText;
-                    if (title is null)
+                    if (string.IsNullOrEmpty(title))
                     {
-                        var titleNode = node.SelectSingleNode("//image/@title");
+                        var titleNode = node.FirstChild;
+                        Console.WriteLine(titleNode.InnerHtml);
                         title = titleNode.Attributes["title"].Value;
                         title = title.Substring(title.IndexOf(' ') + 1);
                     }
