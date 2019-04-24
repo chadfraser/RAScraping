@@ -162,8 +162,8 @@ namespace RAScraping
             {
                 WriteDifferencesInGameDicts(oldUser.PlayedGamesData, false);
             }
+            WriteDifferencesInEarnedAchievements(oldUser);
             WritePlayedGamesThatHaveChanged(dictOfChangedGames);
-            Console.ReadLine();
         }
 
         public void WriteUrlErrorMessage()
@@ -210,6 +210,30 @@ namespace RAScraping
                 Console.WriteLine($"\t{gameName} was removed from {Username}'s {gamesListTypeString} games list.");
             }
         }
+
+        private void WriteDifferencesInEarnedAchievements(User oldUser)
+        {
+            foreach (var gameUrl in PlayedGamesEarnedAchievements.Keys)
+            {
+                if (oldUser.PlayedGamesEarnedAchievements.ContainsKey(gameUrl) &&
+                    !oldUser.PlayedGamesEarnedAchievements[gameUrl].SetEquals(PlayedGamesEarnedAchievements[gameUrl]))
+                {
+                    var achievementsAddedCount = PlayedGamesEarnedAchievements[gameUrl].Except(oldUser.PlayedGamesEarnedAchievements[gameUrl]).Count();
+                    var achievementsRemovedCount = oldUser.PlayedGamesEarnedAchievements[gameUrl].Except(PlayedGamesEarnedAchievements[gameUrl]).Count();
+                    if (achievementsAddedCount != 0)
+                    {
+                        var achievementString = achievementsAddedCount == 1 ? "achievement" : "achievements";
+                        Console.WriteLine($"{Username} has earned {achievementsAddedCount} new {achievementString} in '{PlayedGamesEarnedAchievements[gameUrl]}'.");
+                    }
+                    if (achievementsRemovedCount != 0)
+                    {
+                        var achievementString = achievementsAddedCount == 1 ? "achievement" : "achievements";
+                        Console.WriteLine($"'{PlayedGamesEarnedAchievements[gameUrl]}' has been removed { achievementsAddedCount} of the {achievementString} {Username} had earned.");
+                    }
+                }
+            }
+        }
+
         private void WritePlayedGamesThatHaveChanged(Dictionary<string, string> dictOfChangedGames)
         {
             foreach (var url in dictOfChangedGames.Keys)
