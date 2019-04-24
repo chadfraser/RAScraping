@@ -21,6 +21,7 @@ namespace RAScraping
             Points = RetroRatioPoints = 0;
             CompletedGamesData = new Dictionary<string, string>();
             PlayedGamesData = new Dictionary<string, string>();
+            PlayedGamesEarnedAchievements = new Dictionary<string, HashSet<string>>();
         }
 
         public User(string username) : this(username, username)
@@ -38,10 +39,11 @@ namespace RAScraping
         public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
         public Dictionary<string, string> CompletedGamesData { get; set; }
         public Dictionary<string, string> PlayedGamesData { get; set; }
+        public Dictionary<string, HashSet<string>> PlayedGamesEarnedAchievements { get; set; }
 
         public void FillPlayerData(ref Dictionary<string, string> checkedGames)
         {
-            HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
+            HtmlDocument doc = Program.LoadDocument($"{BaseUrl}{UrlSuffix}&g={_maxGamesToCheck}");
             FillPoints(doc);
             FillCompletedGames(doc, ref checkedGames);
             FillPlayedGames(doc, ref checkedGames);
@@ -50,12 +52,12 @@ namespace RAScraping
         public void FillPoints(HtmlDocument doc)
         {
             var pointsNode = doc.DocumentNode.SelectSingleNode("//span[@class='username']");
-            var retroPointsNode = pointsNode.SelectSingleNode("//span[@class='TrueRatio']");
+            var retroPointsNode = pointsNode.SelectSingleNode(".//span[@class='TrueRatio']");
 
             if (pointsNode != null)
             {
                 var pointsString = pointsNode.InnerText;
-                var usernameText = (pointsNode.SelectSingleNode("//strong") != null) ? pointsNode.SelectSingleNode("//strong").InnerText : "---";
+                var usernameText = (pointsNode.SelectSingleNode(".//strong") != null) ? pointsNode.SelectSingleNode(".//strong").InnerText : "---";
                 var retroPointsText = (retroPointsNode != null) ? retroPointsNode.InnerText : "---";
                 pointsString = pointsString.Replace(usernameText, "").Replace(retroPointsText, "");
                 pointsString = pointsString.Substring(7, pointsString.Length - 15);
@@ -78,9 +80,9 @@ namespace RAScraping
         public void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
         {
             var completedGamesSet = new HashSet<string>(CompletedGamesData.Keys);
-
             var xPath = "//div[@id='usercompletedgamescomponent']//td[@class='']//a";
             PlayedGamesData = BuildGameDict(doc, xPath, completedGamesSet, ref checkedGames);
+            FillPlayedGamesEarnedAchievements(doc);
         }
 
         public Dictionary<string, string> BuildGameDict(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude, ref Dictionary<string, string> checkedGames)
@@ -88,6 +90,10 @@ namespace RAScraping
             var gameDict = new Dictionary<string, string>();
 
             var htmlNodes = doc.DocumentNode.SelectNodes(xPath);
+            if (htmlNodes == null)
+            {
+                return gameDict;
+            }
             foreach (var node in htmlNodes)
             {
                 var link = node.Attributes["href"].Value;
@@ -97,9 +103,8 @@ namespace RAScraping
                     if (string.IsNullOrEmpty(title))
                     {
                         var titleNode = node.FirstChild;
-                        Console.WriteLine(titleNode.InnerHtml);
                         title = titleNode.Attributes["title"].Value;
-                        title = title.Substring(title.IndexOf(' ') + 1);
+                        title = title.Split(' ').First();
                     }
                     gameDict[link] = title;
                     if (!checkedGames.ContainsKey(link))
@@ -111,6 +116,27 @@ namespace RAScraping
                 }
             }
             return gameDict;
+        }
+
+        public void FillPlayedGamesEarnedAchievements(HtmlDocument doc)
+        {
+            foreach (var url in PlayedGamesData.Keys)
+            {
+                var tempSet = new HashSet<string>();
+                var mainNode = doc.DocumentNode.SelectSingleNode($"//div[@class='userpagegames']/a[@href='{url}']").ParentNode;
+                var achievementNodes = mainNode.SelectNodes(".//div[@class='bb_inline']/a");
+
+                foreach (var node in achievementNodes)
+                {
+                    if (!node.ParentNode.OuterHtml.Contains("Unlocked: "))
+                    {
+                        continue;
+                    }
+                    var achievementLink = node.Attributes["href"].Value;
+                    tempSet.Add(achievementLink);
+                }
+                PlayedGamesEarnedAchievements[url] = tempSet;
+            }
         }
 
         public void WriteDifferencesInUsers(User oldUser, Dictionary<string, string> dictOfChangedGames)
