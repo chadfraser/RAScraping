@@ -104,7 +104,9 @@ namespace RAScraping
                     {
                         var titleNode = node.FirstChild;
                         title = titleNode.Attributes["title"].Value;
-                        title = title.Split(' ').First();
+                        var lengthOfFirstWordInTitle = title.Split(' ').First().Length;
+                        title = title.Substring(lengthOfFirstWordInTitle + 1, title.Length - (lengthOfFirstWordInTitle + 1));
+                        Console.WriteLine(title);
                     }
                     gameDict[link] = title;
                     if (!checkedGames.ContainsKey(link))
