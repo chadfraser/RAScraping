@@ -45,7 +45,7 @@ namespace RAScraping
         public int TotalRetroRatioPoints { get => _totalRetroRatioPoints; set => _totalRetroRatioPoints = value; }
         public int TotalPoints { get => _totalPoints; set => _totalPoints = value; }
 
-        public void FillGameData()
+        private void FillGameData()
         {
             HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
 
@@ -66,8 +66,11 @@ namespace RAScraping
             if (retroPointsStringNode != null)
             {
                 var retroPointsString = retroPointsStringNode.InnerText;
-                retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
-                Int32.TryParse(retroPointsString, out _totalRetroRatioPoints);
+                if (retroPointsString.Length >= 2)
+                {
+                    retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
+                    Int32.TryParse(retroPointsString, out _totalRetroRatioPoints);
+                }
             }
             if (boldTagNodes != null && boldTagNodes.Count >= 7)
             {
@@ -80,7 +83,7 @@ namespace RAScraping
             FillAchievements(doc);
         }
 
-        public void FillAchievements(HtmlDocument doc)
+        private void FillAchievements(HtmlDocument doc)
         {
             HtmlNodeCollection achievementNodes = doc.DocumentNode.SelectNodes("//*[@class='achievementdata']");
 
@@ -97,7 +100,7 @@ namespace RAScraping
             }
         }
 
-        public void FillDictWithGameValue(ref Dictionary<string, Game> storedGames)
+        private void FillStoredDictWithGameValue(ref Dictionary<string, Game> storedGames)
         {
             if (!storedGames.ContainsKey(UrlSuffix))
             {
@@ -146,7 +149,7 @@ namespace RAScraping
             }
         }
 
-        public void WriteUrlErrorMessage()
+        private void WriteUrlErrorMessage()
         {
             Console.WriteLine($"Game '{Name}' has a url that does not correspond to its url already stored in the json file.");
             Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new game data.");
@@ -154,7 +157,7 @@ namespace RAScraping
             Console.ReadLine();
         }
 
-        public void WriteDifferenceInPoints(Game oldGame)
+        private void WriteDifferenceInPoints(Game oldGame)
         {
             var comparator = (TotalPoints > oldGame.TotalPoints) ? "gained" : "lost";
             var pointDifference = Math.Abs(TotalPoints - oldGame.TotalPoints);
@@ -174,11 +177,11 @@ namespace RAScraping
             var countDifference = Math.Abs(AchievementCount - oldGame.AchievementCount);
             if (countDifference == 1)
             {
-                Console.WriteLine($"\t{Name} has {comparator} {countDifference} point.");
+                Console.WriteLine($"\t{Name} has {comparator} {countDifference} achievement.");
             }
             else
             {
-                Console.WriteLine($"\t{Name} has {comparator} {countDifference} points.");
+                Console.WriteLine($"\t{Name} has {comparator} {countDifference} achievements.");
             }
         }
 
