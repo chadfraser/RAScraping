@@ -249,9 +249,22 @@ namespace RAScraping
             }
         }
 
-        private static bool AreDictsEqual(Dictionary<string, string> dict1, Dictionary<string, string> dict2)
+        private static bool AreDictsEqual<K, V>(Dictionary<K, V> dict1, Dictionary<K, V> dict2)
         {
-            return !dict1.Except(dict2).Any();
+            if (dict1.Count != dict2.Count)
+            {
+                return false;
+            }
+            return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].Equals(dict2[k]));
+        }
+
+        private static bool AreDictsEqual<K, V>(Dictionary<K, HashSet<V>> dict1, Dictionary<K, HashSet<V>> dict2)
+        {
+            if (dict1.Count != dict2.Count)
+            {
+                return false;
+            }
+            return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].SetEquals(dict2[k]));
         }
 
         public override bool Equals(Object obj)
@@ -265,7 +278,8 @@ namespace RAScraping
                 User u = (User)obj;
                 return ((UrlSuffix.Equals(u.UrlSuffix)) && (Username.Equals(u.Username)) && (Points.Equals(u.Points)) &&
                     (AreDictsEqual(PlayedGamesData, u.PlayedGamesData)) &&
-                    (AreDictsEqual(CompletedGamesData, u.CompletedGamesData)));
+                    (AreDictsEqual(CompletedGamesData, u.CompletedGamesData)) &&
+                    (AreDictsEqual(PlayedGamesEarnedAchievements, u.PlayedGamesEarnedAchievements)));
             }
         }
 
@@ -275,14 +289,24 @@ namespace RAScraping
             const int hashFactor = 86351;
 
             var hash = baseHash;
-            //foreach (string url in PlayedGamesUrlsAndNames)
-            //{
-            //    hash = (hash * hashFactor) ^ url.GetHashCode();
-            //}
-            //foreach (string url in CompletedGamesUrlsAndNames)
-            //{
-            //    hash = (hash * hashFactor) ^ url.GetHashCode();
-            //}
+            foreach (var data in CompletedGamesData)
+            {
+                hash = (hash * hashFactor) ^ data.Key.GetHashCode();
+                hash = (hash * hashFactor) ^ data.Value.GetHashCode();
+            }
+            foreach (var data in PlayedGamesData)
+            {
+                hash = (hash * hashFactor) ^ data.Key.GetHashCode();
+                hash = (hash * hashFactor) ^ data.Value.GetHashCode();
+            }
+            foreach (var data in PlayedGamesEarnedAchievements)
+            {
+                hash = (hash * hashFactor) ^ data.Key.GetHashCode();
+                foreach (var achievementUrl in data.Value)
+                {
+                    hash = (hash * hashFactor) ^ achievementUrl.GetHashCode();
+                }
+            }
             hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ (!(Username is null) ? Username.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ Points.GetHashCode();
