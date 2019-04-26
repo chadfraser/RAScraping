@@ -40,7 +40,7 @@ namespace RAScraping
         public static string BaseUrl { get; } = "http://retroachievements.org";
         public string Name { get; set; }
         public string UrlSuffix { get; set; }
-        public Dictionary<string, Achievement> AchievementsData  { get; set; }
+        public Dictionary<string, Achievement> AchievementsData { get; set; }
         public int AchievementCount { get => _achievementCount; set => _achievementCount = value; }
         public int TotalRetroRatioPoints { get => _totalRetroRatioPoints; set => _totalRetroRatioPoints = value; }
         public int TotalPoints { get => _totalPoints; set => _totalPoints = value; }
@@ -48,6 +48,12 @@ namespace RAScraping
         public void FillGameData()
         {
             HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
+
+            if (CheckForInvalidGameId(doc))
+            {
+                Console.WriteLine($"The given game ID, {UrlSuffix.Replace("/Game/", "")}, has no associated game on the website.");
+                return;
+            }
 
             HtmlNode nameNode = doc.DocumentNode.SelectSingleNode("//*[@class='longheader']");
             HtmlNode retroPointsStringNode = doc.DocumentNode.SelectSingleNode("//*[@id='achievement']//*[@class='TrueRatio']");
@@ -77,6 +83,11 @@ namespace RAScraping
         public void FillAchievements(HtmlDocument doc)
         {
             HtmlNodeCollection achievementNodes = doc.DocumentNode.SelectNodes("//*[@class='achievementdata']");
+
+            if (achievementNodes is null)
+            {
+                return;
+            }
 
             foreach (var achievementNode in achievementNodes)
             {
@@ -169,6 +180,12 @@ namespace RAScraping
             {
                 Console.WriteLine($"\t{Name} has {comparator} {countDifference} points.");
             }
+        }
+
+        static bool CheckForInvalidGameId(HtmlDocument doc)
+        {
+            var fullText = doc.DocumentNode.InnerHtml;
+            return fullText.Equals("Invalid game ID!");
         }
 
         public void SaveData()
