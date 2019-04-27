@@ -7,8 +7,13 @@ using System.Linq;
 using System.Text.RegularExpressions;
 
 /// <summary>
-/// Summary description for Class1
+/// The Game class.
+/// Holds, reads, updates, saves, and manipulates data about games stored on the scraped website.
 /// </summary>
+/// <remarks>
+/// If a url suffix is passed as an argument when constructing a new Game Object, it automatically tries to scrape
+/// the website to set its properties.
+/// </remarks>
 namespace RAScraping
 {
     public class Game
@@ -37,13 +42,26 @@ namespace RAScraping
         {
         }
 
+        /// <value>
+        /// Gets the base url of the scraped site.
+        /// With the url suffix appended to the right end, it becomes the full url.
+        /// </value>
         public static string BaseUrl { get; } = "http://retroachievements.org";
+        /// <value>Gets and sets the name of the game.</value>
         public string Name { get; set; }
+        /// <value>Gets and sets the url suffix of the game.</value>
         public string UrlSuffix { get; set; }
+        /// <value>
+        /// Gets or sets the achievements for the game.
+        /// The key represents the achievement's url, while the value represents the achievement instance.
+        /// </value>
         public Dictionary<string, Achievement> AchievementsData { get; set; }
         public int AchievementCount { get => _achievementCount; set => _achievementCount = value; }
-        public int TotalRetroRatioPoints { get => _totalRetroRatioPoints; set => _totalRetroRatioPoints = value; }
+        /// <value>Gets or sets the total sum of points of all achievements for the game.</value>
         public int TotalPoints { get => _totalPoints; set => _totalPoints = value; }
+        /// <value>Gets or sets the total sum of retro-ratio-adjusted points of all achievements for the game.</value>
+        /// <remarks>These are points curved to adjust for the difficulty of the game/achievement.</remarks>
+        public int TotalRetroRatioPoints { get => _totalRetroRatioPoints; set => _totalRetroRatioPoints = value; }
 
         private void FillGameData()
         {
@@ -110,6 +128,18 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Writes all of the game's information that has changed compared to the game's previously stored data.
+        /// </summary>
+        /// <param name="oldGame">
+        /// The game instance with the previously stored data, updated by the current game instance.
+        /// </param>
+        /// <remarks>
+        /// This writes an error message if the game's url changes, since that should not be possible.
+        /// This will write differences in total points, achievement count, and linked achievements.
+        /// This does not write out if the total retro ratio points have changed since those are considered an
+        /// irrelevant metric for change.
+        /// </remarks>
         public void WriteDifferencesInGames(Game oldGame)
         {
             if (UrlSuffix != oldGame.UrlSuffix)
@@ -200,6 +230,15 @@ namespace RAScraping
             File.WriteAllText(Path.Combine(Program.gameDataDirectory, $"{title}.json"), jsonSerialize);
         }
 
+        /// <summary>
+        /// Determines whether the specified Object is equal to the current Object. (Inherited from Object.)
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>A boolean variable indicating whether the two Objects are functionally equal.</returns>
+        /// <remarks>
+        /// Games are considered to be equal if they share a name, url suffix, total points, and all of their
+        /// achievements are functionally equal.
+        /// </remarks>
         public override bool Equals(Object obj)
         {
             if ((obj is null) || !this.GetType().Equals(obj.GetType()))
@@ -217,16 +256,22 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Determines the hashcode of the Game Object. (Inherited from Object.)
+        /// </summary>
+        /// <returns>The hashcode representation of the Game Object.</returns>
+        /// <remarks>baseHash and hashFactor are arbitrarily selected prime numbers.</remarks>
         public override int GetHashCode()
         {
             const int baseHash = 7673;
             const int hashFactor = 95651;
 
             int hash = baseHash;
-            //foreach (Achievement ach in Achievements)
-            //{
-            //    hash = (hash * hashFactor) ^ ach.GetHashCode();
-            //}
+            foreach (var data in AchievementsData)
+            {
+                hash = (hash * hashFactor) ^ data.Key.GetHashCode();
+                hash = (hash * hashFactor) ^ data.Value.GetHashCode();
+            }
             hash = (hash * hashFactor) ^ (!(UrlSuffix is null) ? UrlSuffix.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ (!(Name is null) ? Name.GetHashCode() : 0);
             hash = (hash * hashFactor) ^ AchievementCount.GetHashCode();

@@ -2,7 +2,8 @@
 using System;
 
 /// <summary>
-/// Summary description for Class1
+/// The Achievement class.
+/// Holds, reads, and manipulates data about achievements stored on the scraped website.
 /// </summary>
 namespace RAScraping
 {
@@ -22,12 +23,27 @@ namespace RAScraping
         {
         }
 
+        /// <value>
+        /// Gets the base url of the scraped site.
+        /// With the url suffix appended to the right end, it becomes the full url.
+        /// </value>
         public static string BaseUrl { get; } = "http://retroachievements.org";
+        /// <value>Gets and sets the name of the achievement.</value>
         public string Name { get; set; }
+        /// <value>Gets and sets the url suffix of the account.</value>
         public string UrlSuffix { get; set; }
+        /// <value>Gets or sets the points the achievement is worth.</value>
         public int Points { get => _points; set => _points = value; }
+        /// <value>Gets or sets the points the retro-ratio-adjusted points the achievement is worth.</value>.</value>
+        /// <remarks>These are points curved to adjust for the difficulty of the game/achievement.</remarks>
         public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
 
+        /// <summary>
+        /// Sets the achievement's points, retro ratio points, and name using the information scraped from the HtmlNode.
+        /// </summary>
+        /// <param name="htmlNode">
+        /// A node containing HTML from the scraped website of the game page that this achievement belongs to.
+        /// </param>
         public void FillAchievementData(HtmlNode htmlNode)
         {
             var linkNode = htmlNode.SelectSingleNode(".//a");
@@ -56,6 +72,18 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Writes all of the achievment's information that has changed compared to the achievement's previously
+        /// stored data.
+        /// </summary>
+        /// <param name="oldAchievement">
+        /// The achievement instance with the previously stored data, updated by the current achievement  instance.
+        /// </param>
+        /// <remarks>
+        /// This will write differences in name and .
+        /// This does not write out if the retro ratio points have changed since those are considered an irrelevant
+        /// metric for change.
+        /// </remarks>
         public void WriteDifferencesInAchievements(Achievement oldAchievement)
         {
             if (Name != oldAchievement.Name)
@@ -68,7 +96,7 @@ namespace RAScraping
             }
         }
 
-        public void WriteDifferenceInPoints(Achievement oldAchievement)
+        private void WriteDifferenceInPoints(Achievement oldAchievement)
         {
             var comparator = (Points > oldAchievement.Points) ? "gained" : "lost";
             var pointDifference = Math.Abs(Points - oldAchievement.Points);
@@ -82,6 +110,14 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Determines whether the specified Object is equal to the current Object. (Inherited from Object.)
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>A boolean variable indicating whether the two Objects are functionally equal.</returns>
+        /// <remarks>
+        /// Achievements are considered to be equal if they share a name, url suffix, and points.
+        /// </remarks>
         public override bool Equals(Object obj)
         {
             if ((obj is null) || !this.GetType().Equals(obj.GetType()))
@@ -95,6 +131,11 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Determines the hashcode of the Achievement Object. (Inherited from Object.)
+        /// </summary>
+        /// <returns>The hashcode representation of the Achievement Object.</returns>
+        /// <remarks>baseHash and hashFactor are arbitrarily selected prime numbers.</remarks>
         public override int GetHashCode()
         {
             const int baseHash = 8039;

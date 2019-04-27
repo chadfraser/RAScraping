@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// The User class.
-/// Holds, reads, updates, and manipulates data about uses of the scraped website.
+/// Holds, reads, updates, and manipulates data about users of the scraped website.
 /// </summary>
 namespace RAScraping
 {
@@ -40,18 +40,14 @@ namespace RAScraping
         public static string BaseUrl { get; } = "http://retroachievements.org/user/";
         /// <value>Gets and sets the username of the account.</value>
         public string Username { get; set; }
-        /// <value>Gets and sets the username of the account.</value>
+        /// <value>Gets and sets the url suffix of the account.</value>
         /// <remarks>
         /// This should always be identical to the username, but is maintained as a separate property in case this ever changes.
         /// </remarks>
         public string UrlSuffix { get; set; }
-        /// <value>
-        /// Gets or sets the total earned points of the account.
-        /// </value>
+        /// <value>Gets or sets the total earned points of the account.</value>
         public int Points { get => _points; set => _points = value; }
-        /// <value>
-        /// Gets or sets the total earned retro-ratio adjusted points of the account.
-        /// </value>
+        /// <value>Gets or sets the total earned retro-ratio-adjusted points of the account.</value>
         /// <remarks>These are points curved to adjust for the difficulty of the game/achievement.</remarks>
         public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
         /// <value>
@@ -76,8 +72,9 @@ namespace RAScraping
         /// Sets the user's points, retro ratio points, completed games data, played games data, and achievements
         /// earned in played games using the information scraped from the HTML document.
         /// </summary>
-        /// <param name="checkedGames">A dictionary of all games that are already checked during the runtime of
-        /// thus program.</param>
+        /// <param name="checkedGames">
+        /// A dictionary of all games that are already checked during the runtime of thus program.
+        /// </param>
         /// <remarks>
         /// <paramref name="checkedGames"/> is used to prevent us from wasting time loading the webpage to check
         /// for updated data for the same game multiple times in one session.
@@ -185,13 +182,15 @@ namespace RAScraping
         /// <summary>
         /// Writes all of the user's information that has changed compared to the user's previously stored data.
         /// </summary>
-        /// <param name="oldUser">The user instance with the previously stored data, updated by the current user instance.</param>
+        /// <param name="oldUser">
+        /// The user instance with the previously stored data, updated by the current user instance.
+        /// </param>
         /// <param name="dictOfChangedGames">
         /// A dictionary of all games that have changed since the previous session of this program.
         /// The keys are the urls of the games that have changed, while the values are those games' names.
         /// </param>
         /// <remarks>
-        /// This writes an error message if the user's url changes, since that should not be possible.
+        /// This writes an error message if the user's url suffix changes, since that should not be possible.
         /// This will write differences in points, completed games, played games, and earned achievements.
         /// It will also write out any games that the user has played that have recently changed.
         /// This does not write out if the retro ratio points have changed since those are considered an irrelevant
@@ -373,7 +372,7 @@ namespace RAScraping
         /// Determines the hashcode of the User Object. (Inherited from Object.)
         /// </summary>
         /// <returns>The hashcode representation of the User Object.</returns>
-        /// <remarks>baseHash and hashFactor are randomly selected prime numbers.</remarks>
+        /// <remarks>baseHash and hashFactor are arbitrarily selected prime numbers.</remarks>
         public override int GetHashCode()
         {
             const int baseHash = 7013;
