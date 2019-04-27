@@ -349,7 +349,7 @@ namespace RAScraping
         /// <param name="obj"></param>
         /// <returns>A boolean variable indicating whether the two Objects are functionally equal.</returns>
         /// <remarks>
-        /// Users are consider to be equal if they share a username, url suffix, points, and their three dicts
+        /// Users are considered to be equal if they share a username, url suffix, points, and their three dicts
         /// (CompletedGamesData, PlayedGamesData, and PlayedGamesEarnedAchievements) are functionally equal.
         /// </remarks>
         public override bool Equals(Object obj)
