@@ -4,7 +4,8 @@ using System.Linq;
 using System.Collections.Generic;
 
 /// <summary>
-/// Summary description for Class1
+/// The User class.
+/// Holds, reads, updates, and manipulates data about uses of the scraped website.
 /// </summary>
 namespace RAScraping
 {
@@ -32,16 +33,56 @@ namespace RAScraping
         {
         }
 
+        /// <value>
+        /// Gets the base url of the scraped site.
+        /// With the url suffix appended to the right end, it becomes the full url.
+        /// </value>
         public static string BaseUrl { get; } = "http://retroachievements.org/user/";
+        /// <value>Gets and sets the username of the account.</value>
         public string Username { get; set; }
+        /// <value>Gets and sets the username of the account.</value>
+        /// <remarks>
+        /// This should always be identical to the username, but is maintained as a separate property in case this ever changes.
+        /// </remarks>
         public string UrlSuffix { get; set; }
+        /// <value>
+        /// Gets or sets the total earned points of the account.
+        /// </value>
         public int Points { get => _points; set => _points = value; }
+        /// <value>
+        /// Gets or sets the total earned retro-ratio adjusted points of the account.
+        /// </value>
+        /// <remarks>These are points curved to adjust for the difficulty of the game/achievement.</remarks>
         public int RetroRatioPoints { get => _retroRatioPoints; set => _retroRatioPoints = value; }
+        /// <value>
+        /// Gets or sets the games the account has completed (earned all achievements for).
+        /// The key represents the game's url, while the value represents its name.
+        /// </value>
         public Dictionary<string, string> CompletedGamesData { get; set; }
+        /// <value>
+        /// Gets or sets the games the account has played but not completed (earned one or more,
+        /// but not all, achievements for).
+        /// The key represents the game's url, while the value represents its name.
+        /// </value>
         public Dictionary<string, string> PlayedGamesData { get; set; }
+        /// <value>
+        /// Gets or sets the achievements earned in games the account has played but not completed.
+        /// The key represents the game's url, while the value is a set of the urls of all earned achievements
+        /// for that game.
+        /// </value>
         public Dictionary<string, HashSet<string>> PlayedGamesEarnedAchievements { get; set; }
 
-        public void FillPlayerData(ref Dictionary<string, string> checkedGames)
+        /// <summary>
+        /// Sets the user's points, retro ratio points, completed games data, played games data, and achievements
+        /// earned in played games using the information scraped from the HTML document.
+        /// </summary>
+        /// <param name="checkedGames">A dictionary of all games that are already checked during the runtime of
+        /// thus program.</param>
+        /// <remarks>
+        /// <paramref name="checkedGames"/> is used to prevent us from wasting time loading the webpage to check
+        /// for updated data for the same game multiple times in one session.
+        /// </remarks>
+        public void FillUserData(ref Dictionary<string, string> checkedGames)
         {
             HtmlDocument doc = Program.LoadDocument($"{BaseUrl}{UrlSuffix}&g={_maxGamesToCheck}");
             FillPoints(doc);
@@ -49,7 +90,7 @@ namespace RAScraping
             FillPlayedGames(doc, ref checkedGames);
         }
 
-        public void FillPoints(HtmlDocument doc)
+        private void FillPoints(HtmlDocument doc)
         {
             var pointsNode = doc.DocumentNode.SelectSingleNode("//span[@class='username']");
             var retroPointsNode = pointsNode.SelectSingleNode(".//span[@class='TrueRatio']");
@@ -71,13 +112,13 @@ namespace RAScraping
             }
         }
 
-        public void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
+        private void FillCompletedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
         {
             var xPath = "//div[@class='trophyimage']//a";
             CompletedGamesData = BuildGameDict(doc, xPath, new HashSet<string>(), ref checkedGames);
         }
 
-        public void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
+        private void FillPlayedGames(HtmlDocument doc, ref Dictionary<string, string> checkedGames)
         {
             var completedGamesSet = new HashSet<string>(CompletedGamesData.Keys);
             var xPath = "//div[@id='usercompletedgamescomponent']//td[@class='']//a";
@@ -85,7 +126,7 @@ namespace RAScraping
             FillPlayedGamesEarnedAchievements(doc);
         }
 
-        public Dictionary<string, string> BuildGameDict(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude, ref Dictionary<string, string> checkedGames)
+        private Dictionary<string, string> BuildGameDict(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude, ref Dictionary<string, string> checkedGames)
         {
             var gameDict = new Dictionary<string, string>();
 
@@ -120,7 +161,7 @@ namespace RAScraping
             return gameDict;
         }
 
-        public void FillPlayedGamesEarnedAchievements(HtmlDocument doc)
+        private void FillPlayedGamesEarnedAchievements(HtmlDocument doc)
         {
             foreach (var url in PlayedGamesData.Keys)
             {
@@ -141,6 +182,21 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Writes all of the user's information that has changed compared to the user's previously stored data.
+        /// </summary>
+        /// <param name="oldUser">The user instance with the previously stored data, updated by the current user instance.</param>
+        /// <param name="dictOfChangedGames">
+        /// A dictionary of all games that have changed since the previous session of this program.
+        /// The keys are the urls of the games that have changed, while the values are those games' names.
+        /// </param>
+        /// <remarks>
+        /// This writes an error message if the user's url changes, since that should not be possible.
+        /// This will write differences in points, completed games, played games, and earned achievements.
+        /// It will also write out any games that the user has played that have recently changed.
+        /// This does not write out if the retro ratio points have changed since those are considered an irrelevant
+        /// metric for change.
+        /// </remarks>
         public void WriteDifferencesInUsers(User oldUser, Dictionary<string, string> dictOfChangedGames)
         {
             Console.WriteLine($"Some information on the user '{Username}' has changed since this program was last run.");
@@ -166,7 +222,7 @@ namespace RAScraping
             WritePlayedGamesThatHaveChanged(dictOfChangedGames);
         }
 
-        public void WriteUrlErrorMessage()
+        private void WriteUrlErrorMessage()
         {
             Console.WriteLine($"User '{Username}' has a url that does not correspond to their url already stored in the json file.");
             Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new user data.");
@@ -174,7 +230,7 @@ namespace RAScraping
             Console.ReadLine();
         }
 
-        public void WriteDifferenceInPoints(User oldUser)
+        private void WriteDifferenceInPoints(User oldUser)
         {
             var comparator = (Points > oldUser.Points) ? "gained" : "lost";
             var pointDifference = Math.Abs(Points - oldUser.Points);
@@ -188,7 +244,7 @@ namespace RAScraping
             }
         }
 
-        public void WriteDifferencesInGameDicts(Dictionary<string, string> oldUserGameDict, bool isComparingCompletedGames)
+        private void WriteDifferencesInGameDicts(Dictionary<string, string> oldUserGameDict, bool isComparingCompletedGames)
         {
             var newUserGames = isComparingCompletedGames ? CompletedGamesData : PlayedGamesData;
             var recentActionVerb = isComparingCompletedGames ? "completed" : "starting playing";
@@ -249,7 +305,16 @@ namespace RAScraping
             }
         }
 
-        private static bool AreDictsEqual<K, V>(Dictionary<K, V> dict1, Dictionary<K, V> dict2)
+        /// <summary>
+        /// Tests if two dictionaries are functionally equal. This means that they have the same keys, and for every
+        /// key their values are equal according to the <c>.Equals()</c> method.
+        /// </summary>
+        /// <typeparam name="K">Any type of object as a key, though only strings are currently implemented.</typeparam>
+        /// <typeparam name="V">Any type of object as a value, though only strings are currently implemented.</typeparam>
+        /// <param name="dict1">The first dictionary to compare.</param>
+        /// <param name="dict2">The second dictionary to compare.</param>
+        /// <returns>A boolean variable stating whether the two dictionaries are functionally equal.</returns>
+        public static bool AreDictsEqual<K, V>(Dictionary<K, V> dict1, Dictionary<K, V> dict2)
         {
             if (dict1.Count != dict2.Count)
             {
@@ -258,7 +323,19 @@ namespace RAScraping
             return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].Equals(dict2[k]));
         }
 
-        private static bool AreDictsEqual<K, V>(Dictionary<K, HashSet<V>> dict1, Dictionary<K, HashSet<V>> dict2)
+        /// <summary>
+        /// Tests if two dictionaries are functionally equal, given that their values are HashSets.
+        /// This means that they have the same keys, and for every key their values are equal according to the 
+        /// <c>.SetEquals()</c> method.
+        /// </summary>
+        /// <typeparam name="K">Any type of object as a key, though only strings are currently implemented.</typeparam>
+        /// <typeparam name="V">
+        /// Any type of object to go in the HashSet stored as a value, though only strings are currently implemented.
+        /// </typeparam>
+        /// <param name="dict1">The first dictionary to compare.</param>
+        /// <param name="dict2">The second dictionary to compare.</param>
+        /// <returns>A boolean variable stating whether the two dictionaries are functionally equal.</returns>
+        public static bool AreDictsEqual<K, V>(Dictionary<K, HashSet<V>> dict1, Dictionary<K, HashSet<V>> dict2)
         {
             if (dict1.Count != dict2.Count)
             {
@@ -267,6 +344,15 @@ namespace RAScraping
             return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].SetEquals(dict2[k]));
         }
 
+        /// <summary>
+        /// Determines whether the specified Object is equal to the current Object. (Inherited from Object.)
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>A boolean variable indicating whether the two Objects are functionally equal.</returns>
+        /// <remarks>
+        /// Users are consider to be equal if they share a username, url suffix, points, and their three dicts
+        /// (CompletedGamesData, PlayedGamesData, and PlayedGamesEarnedAchievements) are functionally equal.
+        /// </remarks>
         public override bool Equals(Object obj)
         {
             if ((obj is null) || !this.GetType().Equals(obj.GetType()))
@@ -283,6 +369,11 @@ namespace RAScraping
             }
         }
 
+        /// <summary>
+        /// Determines the hashcode of the User Object. (Inherited from Object.)
+        /// </summary>
+        /// <returns>The hashcode representation of the User Object.</returns>
+        /// <remarks>baseHash and hashFactor are randomly selected prime numbers.</remarks>
         public override int GetHashCode()
         {
             const int baseHash = 7013;
