@@ -7,7 +7,7 @@ using HtmlAgilityPack;
 using System.IO;
 using Newtonsoft.Json;
 using System.Reflection;
-//using testing;
+using testing;
 
 namespace RAScraping
 {
@@ -36,19 +36,18 @@ namespace RAScraping
                     RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
                     if (rootObject.Usernames is null)
                     {
-                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty.");
+                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty. Press enter to end the program.");
                         Console.ReadLine();
                         Environment.Exit(0);
                     }
-                    UpdateTrackedUserData(rootObject, ref checkedGamesData, ref changedGamesData);
+                    UpdateTrackedUserData(rootObject, ref checkedGamesData, changedGamesData);
                 }
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine("The file 'main_data.json' was not found in the appropriate data folder.");
-                Console.ReadLine();
-                Environment.Exit(0);
+                AbortProgramDueToMissingFile("main_data.json");
             }
+            Console.WriteLine("Press enter to end the program.");
             Console.ReadLine();
         }
 
@@ -66,7 +65,7 @@ namespace RAScraping
         public static HtmlDocument LoadDocument(string url)
         {
             var website = new HtmlWeb();
-            HtmlDocument doc = website.Load(url);
+            var doc = website.Load(url);
             return doc;
         }
 
@@ -78,28 +77,35 @@ namespace RAScraping
                 var urlNumber = filename.Split(' ').Last().Replace(".json", "");
                 var url = $"/Game/{urlNumber}";
                 var newGame = new Game(url);
-
                 Game oldGame;
-                using (StreamReader r = new StreamReader(Path.Combine(gameDataDirectory, filename)))
+
+                try
                 {
-                    var json = r.ReadToEnd();
-                    oldGame = JsonConvert.DeserializeObject<Game>(json);
+                    using (StreamReader r = new StreamReader(Path.Combine(gameDataDirectory, filename)))
+                    {
+                        var json = r.ReadToEnd();
+                        oldGame = JsonConvert.DeserializeObject<Game>(json);
+                    }
+                    if (!oldGame.Equals(newGame))
+                    {
+                        newGame.WriteDifferencesInGames(oldGame);
+                        changedGamesData[url] = newGame.Name;
+                    }
+                    else if (newGame.TotalRetroRatioPoints != oldGame.TotalRetroRatioPoints)
+                    {
+                        newGame.SaveData();
+                    }
                 }
-                if (!oldGame.Equals(newGame))
+                catch (FileNotFoundException)
                 {
-                    newGame.WriteDifferencesInGames(oldGame);
-                    changedGamesData[url] = newGame.Name;
-                }
-                else if (newGame.TotalRetroRatioPoints != oldGame.TotalRetroRatioPoints)
-                {
-                    newGame.SaveData();
+                    AbortProgramDueToMissingFile(filename);
                 }
 
                 checkedGamesData[url] = newGame.Name;
             }
         }
 
-        static void UpdateTrackedUserData(RootObject rootObject, ref Dictionary<string, string> checkedGamesData, ref Dictionary<string, string> changedGamesData)
+        static void UpdateTrackedUserData(RootObject rootObject, ref Dictionary<string, string> checkedGamesData, Dictionary<string, string> changedGamesData)
         {
             var users = new List<User>();
 
@@ -137,7 +143,7 @@ namespace RAScraping
         static User BuildSingleUserData(string username, ref Dictionary<string, string> checkedGamesData)
         {
             var newUser = new User(username);
-            newUser.FillPlayerData(ref checkedGamesData);
+            newUser.FillUserData(ref checkedGamesData);
             return newUser;
         }
 
@@ -149,19 +155,25 @@ namespace RAScraping
 
         static void CompareSingleUserData(User newUser, Dictionary<string, string> changedGamesData)
         {
-            User tempUser;
-            using (StreamReader r = new StreamReader(Path.Combine(userDataDirectory, $"{newUser.Username}.json")))
+            User oldUser;
+            try
             {
-                var json = r.ReadToEnd();
-                tempUser = JsonConvert.DeserializeObject<User>(json);
+                using (StreamReader r = new StreamReader(Path.Combine(userDataDirectory, $"{newUser.Username}.json")))
+                {
+                    var json = r.ReadToEnd();
+                    oldUser = JsonConvert.DeserializeObject<User>(json);
+                }
+                if (!newUser.Equals(oldUser))
+                {
+                    newUser.WriteDifferencesInUsers(oldUser, changedGamesData);
+                    WriteSingleUserData(newUser);
+                }
+                else if (newUser.RetroRatioPoints != oldUser.RetroRatioPoints)
+                {
+                    WriteSingleUserData(newUser);
+                }
             }
-
-            if (!newUser.Equals(tempUser))
-            {
-                newUser.WriteDifferencesInUsers(tempUser, changedGamesData);
-                WriteSingleUserData(newUser);
-            }
-            else if (newUser.RetroRatioPoints != tempUser.RetroRatioPoints)
+            catch (FileNotFoundException)
             {
                 WriteSingleUserData(newUser);
             }
@@ -200,10 +212,59 @@ namespace RAScraping
 
             WriteAllUserData(finalUsers);
         }
-    }
-}
 
-public class RootObject
-{
-    public List<string> Usernames;
+        /// <summary>
+        /// Tests if two dictionaries are functionally equal. This means that they have the same keys, and for every
+        /// key their values are equal according to the <c>.Equals()</c> method.
+        /// </summary>
+        /// <typeparam name="K">Any type of object as a key, though only strings are currently implemented.</typeparam>
+        /// <typeparam name="V">Any type of object as a value, though only strings are currently implemented.</typeparam>
+        /// <param name="dict1">The first dictionary to compare.</param>
+        /// <param name="dict2">The second dictionary to compare.</param>
+        /// <returns>A boolean variable stating whether the two dictionaries are functionally equal.</returns>
+        public static bool AreDictsEqual<K, V>(Dictionary<K, V> dict1, Dictionary<K, V> dict2)
+        {
+            if (dict1.Count != dict2.Count)
+            {
+                return false;
+            }
+            return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].Equals(dict2[k]));
+        }
+
+        /// <summary>
+        /// Tests if two dictionaries are functionally equal, given that their values are HashSets.
+        /// This means that they have the same keys, and for every key their values are equal according to the 
+        /// <c>.SetEquals()</c> method.
+        /// </summary>
+        /// <typeparam name="K">Any type of object as a key, though only strings are currently implemented.</typeparam>
+        /// <typeparam name="V">
+        /// Any type of object to go in the HashSet stored as a value, though only strings are currently implemented.
+        /// </typeparam>
+        /// <param name="dict1">The first dictionary to compare.</param>
+        /// <param name="dict2">The second dictionary to compare.</param>
+        /// <returns>A boolean variable stating whether the two dictionaries are functionally equal.</returns>
+        public static bool AreDictsEqual<K, V>(Dictionary<K, HashSet<V>> dict1, Dictionary<K, HashSet<V>> dict2)
+        {
+            if (dict1.Count != dict2.Count)
+            {
+                return false;
+            }
+            return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].SetEquals(dict2[k]));
+        }
+
+        private static void AbortProgramDueToMissingFile(string filename)
+        {
+            Console.WriteLine($"The file '{filename}' was not found in the appropriate data folder.");
+            Console.WriteLine("Press enter to end the program.");
+            Console.ReadLine();
+            Environment.Exit(0);
+        }
+    }
+
+
+    public class RootObject
+    {
+        public List<string> Usernames;
+    }
+
 }

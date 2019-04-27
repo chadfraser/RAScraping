@@ -209,11 +209,11 @@ namespace RAScraping
             {
                 WriteDifferenceInPoints(oldUser);
             }
-            if (!AreDictsEqual(CompletedGamesData, oldUser.CompletedGamesData))
+            if (!Program.AreDictsEqual(CompletedGamesData, oldUser.CompletedGamesData))
             {
                 WriteDifferencesInGameDicts(oldUser.CompletedGamesData, true);
             }
-            if (!AreDictsEqual(PlayedGamesData, oldUser.PlayedGamesData))
+            if (!Program.AreDictsEqual(PlayedGamesData, oldUser.PlayedGamesData))
             {
                 WriteDifferencesInGameDicts(oldUser.PlayedGamesData, false);
             }
@@ -305,45 +305,6 @@ namespace RAScraping
         }
 
         /// <summary>
-        /// Tests if two dictionaries are functionally equal. This means that they have the same keys, and for every
-        /// key their values are equal according to the <c>.Equals()</c> method.
-        /// </summary>
-        /// <typeparam name="K">Any type of object as a key, though only strings are currently implemented.</typeparam>
-        /// <typeparam name="V">Any type of object as a value, though only strings are currently implemented.</typeparam>
-        /// <param name="dict1">The first dictionary to compare.</param>
-        /// <param name="dict2">The second dictionary to compare.</param>
-        /// <returns>A boolean variable stating whether the two dictionaries are functionally equal.</returns>
-        public static bool AreDictsEqual<K, V>(Dictionary<K, V> dict1, Dictionary<K, V> dict2)
-        {
-            if (dict1.Count != dict2.Count)
-            {
-                return false;
-            }
-            return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].Equals(dict2[k]));
-        }
-
-        /// <summary>
-        /// Tests if two dictionaries are functionally equal, given that their values are HashSets.
-        /// This means that they have the same keys, and for every key their values are equal according to the 
-        /// <c>.SetEquals()</c> method.
-        /// </summary>
-        /// <typeparam name="K">Any type of object as a key, though only strings are currently implemented.</typeparam>
-        /// <typeparam name="V">
-        /// Any type of object to go in the HashSet stored as a value, though only strings are currently implemented.
-        /// </typeparam>
-        /// <param name="dict1">The first dictionary to compare.</param>
-        /// <param name="dict2">The second dictionary to compare.</param>
-        /// <returns>A boolean variable stating whether the two dictionaries are functionally equal.</returns>
-        public static bool AreDictsEqual<K, V>(Dictionary<K, HashSet<V>> dict1, Dictionary<K, HashSet<V>> dict2)
-        {
-            if (dict1.Count != dict2.Count)
-            {
-                return false;
-            }
-            return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].SetEquals(dict2[k]));
-        }
-
-        /// <summary>
         /// Determines whether the specified Object is equal to the current Object. (Inherited from Object.)
         /// </summary>
         /// <param name="obj"></param>
@@ -362,9 +323,9 @@ namespace RAScraping
             {
                 User u = (User)obj;
                 return ((UrlSuffix.Equals(u.UrlSuffix)) && (Username.Equals(u.Username)) && (Points.Equals(u.Points)) &&
-                    (AreDictsEqual(PlayedGamesData, u.PlayedGamesData)) &&
-                    (AreDictsEqual(CompletedGamesData, u.CompletedGamesData)) &&
-                    (AreDictsEqual(PlayedGamesEarnedAchievements, u.PlayedGamesEarnedAchievements)));
+                    (Program.AreDictsEqual(PlayedGamesData, u.PlayedGamesData)) &&
+                    (Program.AreDictsEqual(CompletedGamesData, u.CompletedGamesData)) &&
+                    (Program.AreDictsEqual(PlayedGamesEarnedAchievements, u.PlayedGamesEarnedAchievements)));
             }
         }
 
