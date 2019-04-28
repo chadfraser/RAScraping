@@ -210,7 +210,6 @@ namespace RAScraping
         /// </remarks>
         public void WriteDifferencesInUsers(User oldUser, Dictionary<string, string> dictOfChangedGames)
         {
-            Console.WriteLine($"Some information on the user '{Username}' has changed since this program was last run.");
             if (!UrlSuffix.Equals(oldUser.UrlSuffix))
             {
                 WriteUrlErrorMessage();
@@ -235,9 +234,9 @@ namespace RAScraping
 
         private void WriteUrlErrorMessage()
         {
-            Console.WriteLine($"User '{Username}' has a url that does not correspond to their url already stored " +
+            Console.WriteLine($"\tUser '{Username}' has a url that does not correspond to their url already stored " +
                 $"in the json file.");
-            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved " +
+            Console.WriteLine($"\tThis should not be possible, and indicates there is an error either in the saved " +
                 $"json file or the new user data.");
             //Console.WriteLine($"Press enter to override the stored json file with the new user data.");
             //Console.ReadLine();
@@ -277,7 +276,7 @@ namespace RAScraping
             }
             foreach (string gameName in oldUserGameDict.Values)
             {
-                Console.WriteLine($"\t{gameName} was removed from {Username}'s {gamesListTypeString} games list.");
+                Console.WriteLine($"\t{Username} has lost {gameName} from their {gamesListTypeString} games list.");
             }
         }
 
@@ -295,13 +294,13 @@ namespace RAScraping
                     if (achievementsAddedCount != 0)
                     {
                         var achievementString = achievementsAddedCount == 1 ? "achievement" : "achievements";
-                        Console.WriteLine($"{Username} has earned {achievementsAddedCount} new {achievementString} in " +
-                            $"'{PlayedGamesEarnedAchievements[gameUrl]}'.");
+                        Console.WriteLine($"\t{Username} has earned {achievementsAddedCount} new {achievementString} " +
+                            $"in '{PlayedGamesData[gameUrl]}'.");
                     }
                     if (achievementsRemovedCount != 0)
                     {
-                        Console.WriteLine($"'{PlayedGamesEarnedAchievements[gameUrl]}' has removed " +
-                            $"{achievementsRemovedCount} of the achievements {Username} had earned.");
+                        Console.WriteLine($"\t{Username} has lost {achievementsRemovedCount} of the achievements " +
+                            $"previously earned in '{PlayedGamesData[gameUrl]}'.");
                     }
                 }
             }
@@ -313,11 +312,13 @@ namespace RAScraping
             {
                 if (CompletedGamesData.ContainsKey(url))
                 {
-                    Console.WriteLine($"'{dictOfChangedGames[url]}', which has changed recently, was in {Username}'s completed games list.");
+                    Console.WriteLine($"\t'{Username} had '{dictOfChangedGames[url]}', which has changed recently, " +
+                        $"in their completed games list.");
                 }
                 else if (PlayedGamesData.ContainsKey(url))
                 {
-                    Console.WriteLine($"'{dictOfChangedGames[url]}', which has changed recently, was in {Username}'s played games list.");
+                    Console.WriteLine($"\t'{Username} had '{dictOfChangedGames[url]}', which has changed recently, " +
+                        $"in their played games list.");
                 }
             }
         }

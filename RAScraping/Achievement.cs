@@ -88,7 +88,7 @@ namespace RAScraping
         {
             if (Name != oldAchievement.Name)
             {
-                Console.WriteLine($"'{oldAchievement.Name}' has been updated to '{Name}'.");
+                Console.WriteLine($"\t'{oldAchievement.Name}' has been updated to '{Name}'.");
             }
             if (Points != oldAchievement.Points)
             {

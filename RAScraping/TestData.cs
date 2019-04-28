@@ -56,6 +56,13 @@ namespace testing
                 Console.ReadLine();
             }
 
+            testResult = !testSet.Contains(testUserB);
+            if (!testResult)
+            {
+                Console.WriteLine("User contained in hashset recognized as unequal user.");
+                Console.ReadLine();
+            }
+
             testUserA.RetroRatioPoints = 10;
             testResult = testUserA.Equals(testUserC);
             if (!testResult)
@@ -64,7 +71,7 @@ namespace testing
                 Console.ReadLine();
             }
 
-            testUserA.Url = "foo";
+            testUserA.UrlSuffix = "foobar";
             testResult = !testUserA.Equals(testUserC);
             if (!testResult)
             {

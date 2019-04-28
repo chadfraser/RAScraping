@@ -7,7 +7,6 @@ using HtmlAgilityPack;
 using System.IO;
 using Newtonsoft.Json;
 using System.Reflection;
-using testing;
 using Fraser.GenericMethods;
 
 namespace RAScraping
@@ -21,12 +20,17 @@ namespace RAScraping
 
         static void Main(string[] args)
         {
+            var mail = new EmailComposer();
+            mail.InitializeOutlookComposer("chad.fraser@mail.mcgill.ca");
+
+            var sb = new OutputHandler();
+            Console.SetOut(sb);
+
             var checkedGamesData = new Dictionary<string, string>();
             var changedGamesData = new Dictionary<string, string>();
 
-            //TestData.Test();
             InitializePaths();
-            //UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
+            UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
 
             try
             {
@@ -47,19 +51,26 @@ namespace RAScraping
             {
                 FileNotFoundHandler.AbortProgramToDueMissingCriticalFile("main_data.json", dataDirectory);
             }
-            Console.WriteLine("Press enter to end the program.");
-            Console.ReadLine();
+
+            if (String.IsNullOrWhiteSpace(sb.Output.ToString()))
+            {
+                sb.Output.Append("No changes have been made to any tracked files since the program was last run.");
+            }
+            mail.SendEmail("Test", sb.Output.ToString());
         }
 
         static void InitializePaths()
         {
             DirectoryBuilder.InitializeMainAsGrandparentDirectory();
             dataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory("data");
-            userDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory("users");
-            gameDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory("games");
+            userDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory(
+                new string[] { "data", "users" });
+            gameDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory(
+                new string[] { "data", "games" });
         }
 
-        static void UpdateTrackedGameData(ref Dictionary<string, string> checkedGamesData, ref Dictionary<string, string> changedGamesData)
+        static void UpdateTrackedGameData(ref Dictionary<string, string> checkedGamesData,
+            ref Dictionary<string, string> changedGamesData)
         {
             string[] fileArray = Directory.GetFiles(gameDataDirectory, "*.json");
             foreach (var filename in fileArray)
@@ -80,6 +91,7 @@ namespace RAScraping
                     {
                         newGame.WriteDifferencesInGames(oldGame);
                         changedGamesData[url] = newGame.Name;
+                        newGame.SaveData();
                     }
                     else if (newGame.TotalRetroRatioPoints != oldGame.TotalRetroRatioPoints)
                     {
@@ -96,7 +108,8 @@ namespace RAScraping
             }
         }
 
-        static void UpdateTrackedUserData(RootObject rootObject, ref Dictionary<string, string> checkedGamesData, Dictionary<string, string> changedGamesData)
+        static void UpdateTrackedUserData(RootObject rootObject, ref Dictionary<string, string> checkedGamesData,
+            Dictionary<string, string> changedGamesData)
         {
             var users = new List<User>();
 

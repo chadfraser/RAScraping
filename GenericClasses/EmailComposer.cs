@@ -10,85 +10,77 @@ namespace Fraser.GenericMethods
 {
     public class EmailComposer
     {
-        private static string fromEmail;
-        private static List<string> toEmails;
+        private string fromEmail;
+        private List<string> toEmails;
         //SecureString emailPassword;
-        private static string emailPassword;
+        private string emailPassword;
+        private SmtpClient client;
 
-        public static void InitializeGmailComposer(string subject, string message)
+        public void InitializeGmailComposer()
         {
-            var client = new SmtpClient("smtp.gmail.com");
-            InitializeMailComposer(client, subject, message);
+            client = new SmtpClient("smtp.gmail.com");
+            InitializeMailComposer();
         }
 
-        public static void InitializeOutlookComposer(string subject, string message)
+        public void InitializeGmailComposer(string toEmail)
         {
-            var client = new SmtpClient("smtp-mail.outlook.com");
-            InitializeMailComposer(client, subject, message);
+            toEmails = new List<string> { toEmail };
+            InitializeGmailComposer();
         }
 
-        public static void InitializeMailComposer(SmtpClient client, string subject, string message)
+        public void InitializeOutlookComposer()
         {
-            InitializeEmailAndPassword();
+            client = new SmtpClient("smtp-mail.outlook.com");
+            InitializeMailComposer();
+        }
 
-            var mail = new MailMessage
-            {
-                From = new MailAddress(fromEmail),
-                Subject = subject,
-                Body = message
-            };
-            foreach (var email in toEmails)
-            {
-                mail.To.Add(new MailAddress(email));
-            }
+        public void InitializeOutlookComposer(string toEmail)
+        {
+            toEmails = new List<string> { toEmail };
+            InitializeOutlookComposer();
+        }
+
+        private void InitializeMailComposer()
+        {
+            InitializeProperties();
 
             client.Port = 587;
             client.EnableSsl = true;
             client.Credentials = new NetworkCredential(fromEmail, emailPassword);
-            //try
-            //{
-                client.Send(mail);
-            //}
-            //catch (SmtpException)
-            //{
-            //    Console.WriteLine("We have run into an exception.");
-            //    Console.ReadLine();
-            //}
         }
 
-        public static void InitializeEmailAndPassword()
+        public void InitializeProperties()
         {
-            if (fromEmail != null && emailPassword != null)
+            if (fromEmail != null && emailPassword != null && toEmails.Count == 0)
             {
                 return;
             }
 
-            Console.WriteLine("AA");
             DirectoryBuilder.InitializeMainAsGrandparentDirectory();
             try
             {
                 using (StreamReader r = new StreamReader(
                     Path.Combine(DirectoryBuilder.mainDirectory, "email_settings.json")))
                 {
-                    ReadEmailAndPassword(r);
+                    ReadProperties(r);
                 }
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine(DirectoryBuilder.mainDirectory);
                 UpdateEmailIfNull();
                 UpdatePasswordIfNull();
+                UpdateToEmailsIfNullOrEmpty();
             }
-            SaveEmailAndPassword();
+            SaveEmailProperties();
         }
 
-        private static void ReadEmailAndPassword(StreamReader r)
+        private void ReadProperties(StreamReader r)
         {
             var json = r.ReadToEnd();
             var jsonDataObject = JsonConvert.DeserializeObject<EmailJsonDataObject>(json);
             fromEmail = jsonDataObject.EmailAddress;
             emailPassword = jsonDataObject.Password;
-            Console.WriteLine(fromEmail + "  " + emailPassword);
+            toEmails = jsonDataObject.RecepientEmailAddresses;
             
             if (jsonDataObject.EmailAddress is null)
             {
@@ -98,9 +90,13 @@ namespace Fraser.GenericMethods
             {
                 UpdatePasswordIfNull();
             }
+            if (toEmails is null || toEmails.Count == 0)
+            {
+                UpdateToEmailsIfNullOrEmpty();
+            }
         }
 
-        private static void UpdateEmailIfNull()
+        private void UpdateEmailIfNull()
         {
             if (fromEmail is null)
             {
@@ -109,7 +105,7 @@ namespace Fraser.GenericMethods
             }
         }
 
-        private static void UpdatePasswordIfNull()
+        private void UpdatePasswordIfNull()
         {
             if (emailPassword is null)
             {
@@ -119,7 +115,27 @@ namespace Fraser.GenericMethods
             }
         }
 
-        private static void GetUserInputPassword()
+        private void UpdateToEmailsIfNullOrEmpty()
+        {
+            string input;
+            if (toEmails is null || toEmails.Count == 0)
+            {
+                Console.WriteLine("Please enter all emails that you wish to send the message to. End with a blank line.");
+                do
+                {
+                    input = Console.ReadLine();
+                    toEmails.Add(input);
+                }
+                while (!String.IsNullOrEmpty(input));
+
+                if (toEmails.Count > 0 && String.IsNullOrEmpty(toEmails[toEmails.Count - 1]))
+                {
+                    toEmails.RemoveAt(toEmails.Count - 1);
+                }
+            }
+        }
+
+        private void GetUserInputPassword()
         {
             //ConsoleKeyInfo key;
 
@@ -149,9 +165,37 @@ namespace Fraser.GenericMethods
             //} while (key.Key != ConsoleKey.Enter);
         }
 
-        private static void SaveEmailAndPassword()
+        public void SendEmail(string subject, string message)
         {
-            var jsonDataObject = new EmailJsonDataObject { EmailAddress = fromEmail, Password = emailPassword };
+            var mail = new MailMessage
+            {
+                From = new MailAddress(fromEmail),
+                Subject = subject,
+                Body = message
+            };
+            foreach (var email in toEmails)
+            {
+                mail.To.Add(new MailAddress(email));
+            }
+
+            try
+            {
+                client.Send(mail);
+            }
+            catch (SmtpException)
+            {
+                Console.WriteLine("We have run into an exception. Either your email and password are incorrect, " +
+                    "or your email is not set up to send messages through SMTP.");
+                Environment.Exit(0);
+                Console.ReadLine();
+            }
+        }
+
+        private void SaveEmailProperties()
+        {
+            var jsonDataObject = new EmailJsonDataObject { EmailAddress = fromEmail,
+                Password = emailPassword,
+                RecepientEmailAddresses = toEmails };
             string jsonSerialize = JsonConvert.SerializeObject(jsonDataObject, Formatting.Indented);
             File.WriteAllText(Path.Combine(DirectoryBuilder.mainDirectory, "email_settings.json"), jsonSerialize);
         }

@@ -95,19 +95,14 @@ namespace RAScraping
             FillAchievements(doc);
         }
 
-        private void InitializeAchievementCount(HtmlNode retroPointsStringNode)
+        private void InitializeAchievementCount(HtmlNode achievementCountStringNode)
         {
-            if (retroPointsStringNode == null)
+            if (achievementCountStringNode == null)
             {
                 return;
             }
-
-            var retroPointsString = retroPointsStringNode.InnerText;
-            if (retroPointsString.Length >= 2)
-            {
-                retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
-                Int32.TryParse(retroPointsString, out _totalRetroRatioPoints);
-            }
+            var achievementCountString = achievementCountStringNode.InnerText;
+            Int32.TryParse(achievementCountString, out _achievementCount);
         }
 
         private void InitializePoints(HtmlNode pointsStringNode)
@@ -157,7 +152,6 @@ namespace RAScraping
             if (!storedGames.ContainsKey(UrlSuffix))
             {
                 FillGameData();
-                System.Threading.Thread.Sleep(2000);
                 storedGames[UrlSuffix] = this;
             }
         }
@@ -176,14 +170,16 @@ namespace RAScraping
         /// </remarks>
         public void WriteDifferencesInGames(Game oldGame)
         {
+            Console.WriteLine();
             if (UrlSuffix != oldGame.UrlSuffix)
             {
                 WriteUrlErrorMessage();
                 return;
             }
+            Console.WriteLine($"{Name} has undergone the following changes since the last time this program was run:");
             if (Name != oldGame.Name)
             {
-                Console.WriteLine($"'{oldGame.Name}' has been updated to '{Name}'.");
+                Console.WriteLine($"\t'{oldGame.Name}' has been updated to '{Name}'.");
             }
             if (TotalPoints != oldGame.TotalPoints)
             {
@@ -197,14 +193,14 @@ namespace RAScraping
             {
                 if (!AchievementsData.ContainsKey(achievement.Key))
                 {
-                    Console.WriteLine($"{Name} has recently removed the achievement '{achievement.Value.Name}'.");
+                    Console.WriteLine($"\t{Name} has recently removed the achievement '{achievement.Value.Name}'.");
                 }
             }
             foreach (var achievement in AchievementsData.Except(oldGame.AchievementsData))
             {
                 if (!oldGame.AchievementsData.ContainsKey(achievement.Key))
                 {
-                    Console.WriteLine($"{Name} has recently added the achievement '{achievement.Value.Name}'.");
+                    Console.WriteLine($"\t{ Name} has recently added the achievement '{achievement.Value.Name}'.");
                 }
                 else
                 {
@@ -282,7 +278,7 @@ namespace RAScraping
             else
             {
                 Game g = (Game)obj;
-                if (AchievementsData.Except(g.AchievementsData).Any())
+                if (!Program.AreDictsEqual(AchievementsData, g.AchievementsData))
                 {
                     return false;
                 }

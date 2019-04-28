@@ -17,6 +17,7 @@ namespace Fraser.GenericMethods
                     doc = null;
                 }
             };
+            System.Threading.Thread.Sleep(2000);
             return doc;
         }
 

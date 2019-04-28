@@ -9,3 +9,9 @@ C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\HtmlAgilityPack.xml
 C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\obj\Debug\RAScraping.csproj.CopyComplete
 C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\obj\Debug\RAScraping.exe
 C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\obj\Debug\RAScraping.pdb
+C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\Json.Net.dll
+C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\Newtonsoft.Json.pdb
+C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\GenericClasses.dll
+C:\Users\Chad\Desktop\C#\RAScraping\RAScraping\bin\Debug\GenericClasses.pdb

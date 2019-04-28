@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /// <summary>
@@ -47,9 +48,10 @@ namespace Fraser.GenericMethods
             return fullPath;
         }
 
-        public static string BuildPathFromMainDirectory(string subDirectory)
+        public static string BuildPathAndDirectoryFromMainDirectory(string[] subDirectories)
         {
-            return Path.Combine(mainDirectory, subDirectory);
+            var pathSuffix = Path.Combine(subDirectories);
+            return Path.Combine(mainDirectory, pathSuffix);
         }
 
         public static void CreateDirectoryIfNotAlreadyExistent(string directory)
