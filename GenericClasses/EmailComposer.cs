@@ -186,8 +186,6 @@ namespace Fraser.GenericMethods
             {
                 Console.WriteLine("We have run into an exception. Either your email and password are incorrect, " +
                     "or your email is not set up to send messages through SMTP.");
-                Environment.Exit(0);
-                Console.ReadLine();
             }
         }
 

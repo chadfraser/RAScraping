@@ -200,7 +200,7 @@ namespace RAScraping
             {
                 if (!oldGame.AchievementsData.ContainsKey(achievement.Key))
                 {
-                    Console.WriteLine($"\t{ Name} has recently added the achievement '{achievement.Value.Name}'.");
+                    Console.WriteLine($"\t{Name} has recently added the achievement '{achievement.Value.Name}'.");
                 }
                 else
                 {
@@ -211,10 +211,12 @@ namespace RAScraping
 
         private void WriteUrlErrorMessage()
         {
-            Console.WriteLine($"Game '{Name}' has a url that does not correspond to its url already stored in the json file.");
-            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new game data.");
-            Console.WriteLine($"Press enter to override the stored json file with the new game data.");
-            Console.ReadLine();
+            Console.WriteLine($"Game '{Name}' has a url that does not correspond to its url already stored " +
+                $"in the json file.");
+            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved " +
+                $"json file or the new game data.");
+            //Console.WriteLine($"Press enter to override the stored json file with the new game data.");
+            //Console.ReadLine();
         }
 
         private void WriteDifferenceInPoints(Game oldGame)

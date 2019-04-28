@@ -40,7 +40,8 @@ namespace RAScraping
                     RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
                     if (rootObject.Usernames is null)
                     {
-                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty. Press enter to end the program.");
+                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty. " +
+                            "Press enter to end the program.");
                         Console.ReadLine();
                         Environment.Exit(0);
                     }
