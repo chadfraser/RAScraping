@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Fraser.GenericMethods;
 
 /// <summary>
 /// The Game class.
@@ -65,40 +66,73 @@ namespace RAScraping
 
         private void FillGameData()
         {
-            HtmlDocument doc = Program.LoadDocument(BaseUrl + UrlSuffix);
-
+            var doc = HtmlDocumentHandler.GetDocumentOrNullIfError(BaseUrl + UrlSuffix);
+            if (doc == null)
+            {
+                return;
+            }
             if (CheckForInvalidGameId(doc))
             {
-                Console.WriteLine($"The given game ID, {UrlSuffix.Replace("/Game/", "")}, has no associated game on the website.");
                 return;
             }
 
-            HtmlNode nameNode = doc.DocumentNode.SelectSingleNode("//*[@class='longheader']");
-            HtmlNode retroPointsStringNode = doc.DocumentNode.SelectSingleNode("//*[@id='achievement']//*[@class='TrueRatio']");
-            HtmlNodeCollection boldTagNodes = doc.DocumentNode.SelectNodes("//*[@id='achievement']//b");
+            var nameNode = doc.DocumentNode.SelectSingleNode("//*[@class='longheader']");
+            var boldTagNodes = doc.DocumentNode.SelectNodes("//*[@id='achievement']//b");
+            var retroPointsStringNode = doc.DocumentNode.SelectSingleNode(
+                "//*[@id='achievement']//*[@class='TrueRatio']");
 
             if (nameNode != null)
             {
                 Name = nameNode.InnerText;
             }
-            if (retroPointsStringNode != null)
-            {
-                var retroPointsString = retroPointsStringNode.InnerText;
-                if (retroPointsString.Length >= 2)
-                {
-                    retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
-                    Int32.TryParse(retroPointsString, out _totalRetroRatioPoints);
-                }
-            }
             if (boldTagNodes != null && boldTagNodes.Count >= 7)
             {
-                var achievementCountString = boldTagNodes[5].InnerText;
-                var totalPointsString = boldTagNodes[6].InnerText;
-                Int32.TryParse(achievementCountString, out _achievementCount);
-                Int32.TryParse(totalPointsString, out _totalPoints);
+                InitializeAchievementCount(boldTagNodes[5]);
+                InitializePoints(boldTagNodes[6]);
             }
+            InitializeRetroRatioPoints(retroPointsStringNode);
 
             FillAchievements(doc);
+        }
+
+        private void InitializeAchievementCount(HtmlNode retroPointsStringNode)
+        {
+            if (retroPointsStringNode == null)
+            {
+                return;
+            }
+
+            var retroPointsString = retroPointsStringNode.InnerText;
+            if (retroPointsString.Length >= 2)
+            {
+                retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
+                Int32.TryParse(retroPointsString, out _totalRetroRatioPoints);
+            }
+        }
+
+        private void InitializePoints(HtmlNode pointsStringNode)
+        {
+            if (pointsStringNode == null)
+            {
+                return;
+            }
+            var pointsString = pointsStringNode.InnerText;
+            Int32.TryParse(pointsString, out _totalPoints);
+        }
+
+        private void InitializeRetroRatioPoints(HtmlNode retroPointsStringNode)
+        {
+            if (retroPointsStringNode == null)
+            {
+                return;
+            }
+
+            var retroPointsString = retroPointsStringNode.InnerText;
+            if (retroPointsString.Length >= 2)
+            {
+                retroPointsString = retroPointsString.Substring(1, retroPointsString.Length - 2);
+                Int32.TryParse(retroPointsString, out _totalRetroRatioPoints);
+            }
         }
 
         private void FillAchievements(HtmlDocument doc)

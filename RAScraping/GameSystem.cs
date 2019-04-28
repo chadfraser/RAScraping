@@ -7,31 +7,35 @@ namespace RAScraping
 {
     public class GameSystem
     {
-        private string _name;
-        private string _url;
-        private List<Game> _gamesList;
+        public string Name { get; set;  }
+        public string UrlSuffix { get; set; }
+        public HashSet<string> GamesUrls { get; set; }
 
-        public string Name
+        public GameSystem(string name, string urlSuffix)
         {
-            get { return _name; }
-            set { _name = value; }
+            Name = name;
+            UrlSuffix = urlSuffix;
+            GamesUrls = new HashSet<string>();
         }
-        public string Url
+    }
+
+    public void FillGameSystemData(HtmlDocument doc)
+    {
+        HtmlNode nameNode = doc.DocumentNode.SelectSingleNode("//*[@class='navpath']//b");
+        if (nameNode != null)
         {
-            get { return _url; }
-            set { _url = value; }
-        }
-        public List<Game> GamesList
-        {
-            get { return _gamesList; }
-            set { _gamesList = value; }
+            var nameNodeString = nameNode.InnerText;
+            Name = nameNodeString.Substring(0, nameNodeString.Length - 6);
         }
 
-        public GameSystem(string name, string url)
+        HtmlNodeCollection gameDataTableRows = doc.DocumentNode.SelectNodes("//*[@class='smalltable']//tr[position()>1]");
+        foreach (var tableRowNode in gameDataTableRows)
         {
-            this._name = name;
-            this._url = url;
-            _gamesList = new List<Game>();
+            var linkNode = htmlNode.SelectSingleNode(".//a");
+            var link = linkNode.Attributes["href"].Value;
+            //var newGame = new GameSystem(linkNode.Attributes["href"].Value);
+            //GamesList.Add(newGame);
+            GamesUrls.Add(link);
         }
     }
 }

@@ -8,12 +8,12 @@ using System.IO;
 using Newtonsoft.Json;
 using System.Reflection;
 using testing;
+using Fraser.GenericMethods;
 
 namespace RAScraping
 {
     class Program
     {
-        private static string mainDirectory;
         private static string dataDirectory;
         public static string userDataDirectory;
         public static string gameDataDirectory;
@@ -45,7 +45,7 @@ namespace RAScraping
             }
             catch (FileNotFoundException)
             {
-                AbortProgramDueToMissingFile("main_data.json");
+                FileNotFoundHandler.AbortProgramToDueMissingCriticalFile("main_data.json", dataDirectory);
             }
             Console.WriteLine("Press enter to end the program.");
             Console.ReadLine();
@@ -53,20 +53,10 @@ namespace RAScraping
 
         static void InitializePaths()
         {
-            mainDirectory = Directory.GetParent(Directory.GetParent(Environment.CurrentDirectory.ToString()).ToString()).ToString();
-            dataDirectory = Path.Combine(mainDirectory, "data");
-            userDataDirectory = Path.Combine(dataDirectory, "users");
-            gameDataDirectory = Path.Combine(dataDirectory, "games");
-            Directory.CreateDirectory(dataDirectory);
-            Directory.CreateDirectory(userDataDirectory);
-            Directory.CreateDirectory(gameDataDirectory);
-        }
-
-        public static HtmlDocument LoadDocument(string url)
-        {
-            var website = new HtmlWeb();
-            var doc = website.Load(url);
-            return doc;
+            DirectoryBuilder.InitializeMainAsGrandparentDirectory();
+            dataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory("data");
+            userDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory("users");
+            gameDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory("games");
         }
 
         static void UpdateTrackedGameData(ref Dictionary<string, string> checkedGamesData, ref Dictionary<string, string> changedGamesData)
@@ -98,7 +88,8 @@ namespace RAScraping
                 }
                 catch (FileNotFoundException)
                 {
-                    AbortProgramDueToMissingFile(filename);
+
+                    FileNotFoundHandler.AbortProgramToDueMissingCriticalFile(filename, gameDataDirectory);
                 }
 
                 checkedGamesData[url] = newGame.Name;
@@ -251,20 +242,10 @@ namespace RAScraping
             }
             return dict1.Keys.All(k => dict2.ContainsKey(k) && dict1[k].SetEquals(dict2[k]));
         }
-
-        private static void AbortProgramDueToMissingFile(string filename)
-        {
-            Console.WriteLine($"The file '{filename}' was not found in the appropriate data folder.");
-            Console.WriteLine("Press enter to end the program.");
-            Console.ReadLine();
-            Environment.Exit(0);
-        }
     }
-
 
     public class RootObject
     {
         public List<string> Usernames;
     }
-
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using Fraser.GenericMethods;
 
 /// <summary>
 /// The User class.
@@ -42,7 +43,8 @@ namespace RAScraping
         public string Username { get; set; }
         /// <value>Gets and sets the url suffix of the account.</value>
         /// <remarks>
-        /// This should always be identical to the username, but is maintained as a separate property in case this ever changes.
+        /// This should always be identical to the username, but is maintained as a separate property in case this
+        /// ever changes.
         /// </remarks>
         public string UrlSuffix { get; set; }
         /// <value>Gets or sets the total earned points of the account.</value>
@@ -81,7 +83,13 @@ namespace RAScraping
         /// </remarks>
         public void FillUserData(ref Dictionary<string, string> checkedGames)
         {
-            HtmlDocument doc = Program.LoadDocument($"{BaseUrl}{UrlSuffix}&g={_maxGamesToCheck}");
+            HtmlDocument doc = HtmlDocumentHandler.GetDocumentOrNullIfError(
+                $"{BaseUrl}{UrlSuffix}&g={_maxGamesToCheck}");
+            if (doc == null)
+            {
+                return;
+            }
+
             FillPoints(doc);
             FillCompletedGames(doc, ref checkedGames);
             FillPlayedGames(doc, ref checkedGames);
@@ -95,7 +103,8 @@ namespace RAScraping
             if (pointsNode != null)
             {
                 var pointsString = pointsNode.InnerText;
-                var usernameText = (pointsNode.SelectSingleNode(".//strong") != null) ? pointsNode.SelectSingleNode(".//strong").InnerText : "---";
+                var usernameText = (pointsNode.SelectSingleNode(".//strong") != null) ? 
+                    pointsNode.SelectSingleNode(".//strong").InnerText : "---";
                 var retroPointsText = (retroPointsNode != null) ? retroPointsNode.InnerText : "---";
                 pointsString = pointsString.Replace(usernameText, "").Replace(retroPointsText, "");
                 pointsString = pointsString.Substring(7, pointsString.Length - 15);
@@ -123,7 +132,8 @@ namespace RAScraping
             FillPlayedGamesEarnedAchievements(doc);
         }
 
-        private Dictionary<string, string> BuildGameDict(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude, ref Dictionary<string, string> checkedGames)
+        private Dictionary<string, string> BuildGameDict(HtmlDocument doc, string xPath, HashSet<string> urlsToExclude,
+            ref Dictionary<string, string> checkedGames)
         {
             var gameDict = new Dictionary<string, string>();
 
@@ -144,7 +154,8 @@ namespace RAScraping
                         var titleNode = node.FirstChild;
                         title = titleNode.Attributes["title"].Value;
                         var lengthOfFirstWordInTitle = title.Split(' ').First().Length;
-                        title = title.Substring(lengthOfFirstWordInTitle + 1, title.Length - (lengthOfFirstWordInTitle + 1));
+                        title = title.Substring(lengthOfFirstWordInTitle + 1,
+                            title.Length - (lengthOfFirstWordInTitle + 1));
                     }
                     gameDict[link] = title;
                     if (!checkedGames.ContainsKey(link))
@@ -163,7 +174,8 @@ namespace RAScraping
             foreach (var url in PlayedGamesData.Keys)
             {
                 var tempSet = new HashSet<string>();
-                var mainNode = doc.DocumentNode.SelectSingleNode($"//div[@class='userpagegames']/a[@href='{url}']").ParentNode;
+                var mainNode = doc.DocumentNode.SelectSingleNode(
+                    $"//div[@class='userpagegames']/a[@href='{url}']").ParentNode;
                 var achievementNodes = mainNode.SelectNodes(".//div[@class='bb_inline']/a");
 
                 foreach (var node in achievementNodes)
@@ -223,10 +235,12 @@ namespace RAScraping
 
         private void WriteUrlErrorMessage()
         {
-            Console.WriteLine($"User '{Username}' has a url that does not correspond to their url already stored in the json file.");
-            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved json file or the new user data.");
-            Console.WriteLine($"Press enter to override the stored json file with the new user data.");
-            Console.ReadLine();
+            Console.WriteLine($"User '{Username}' has a url that does not correspond to their url already stored " +
+                $"in the json file.");
+            Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved " +
+                $"json file or the new user data.");
+            //Console.WriteLine($"Press enter to override the stored json file with the new user data.");
+            //Console.ReadLine();
         }
 
         private void WriteDifferenceInPoints(User oldUser)
@@ -243,7 +257,8 @@ namespace RAScraping
             }
         }
 
-        private void WriteDifferencesInGameDicts(Dictionary<string, string> oldUserGameDict, bool isComparingCompletedGames)
+        private void WriteDifferencesInGameDicts(Dictionary<string, string> oldUserGameDict,
+            bool isComparingCompletedGames)
         {
             var newUserGames = isComparingCompletedGames ? CompletedGamesData : PlayedGamesData;
             var recentActionVerb = isComparingCompletedGames ? "completed" : "starting playing";
@@ -273,17 +288,20 @@ namespace RAScraping
                 if (oldUser.PlayedGamesEarnedAchievements.ContainsKey(gameUrl) &&
                     !oldUser.PlayedGamesEarnedAchievements[gameUrl].SetEquals(PlayedGamesEarnedAchievements[gameUrl]))
                 {
-                    var achievementsAddedCount = PlayedGamesEarnedAchievements[gameUrl].Except(oldUser.PlayedGamesEarnedAchievements[gameUrl]).Count();
-                    var achievementsRemovedCount = oldUser.PlayedGamesEarnedAchievements[gameUrl].Except(PlayedGamesEarnedAchievements[gameUrl]).Count();
+                    var achievementsAddedCount = PlayedGamesEarnedAchievements[gameUrl].Except(
+                        oldUser.PlayedGamesEarnedAchievements[gameUrl]).Count();
+                    var achievementsRemovedCount = oldUser.PlayedGamesEarnedAchievements[gameUrl].Except(
+                        PlayedGamesEarnedAchievements[gameUrl]).Count();
                     if (achievementsAddedCount != 0)
                     {
                         var achievementString = achievementsAddedCount == 1 ? "achievement" : "achievements";
-                        Console.WriteLine($"{Username} has earned {achievementsAddedCount} new {achievementString} in '{PlayedGamesEarnedAchievements[gameUrl]}'.");
+                        Console.WriteLine($"{Username} has earned {achievementsAddedCount} new {achievementString} in " +
+                            $"'{PlayedGamesEarnedAchievements[gameUrl]}'.");
                     }
                     if (achievementsRemovedCount != 0)
                     {
-                        var achievementString = achievementsAddedCount == 1 ? "achievement" : "achievements";
-                        Console.WriteLine($"'{PlayedGamesEarnedAchievements[gameUrl]}' has been removed { achievementsAddedCount} of the {achievementString} {Username} had earned.");
+                        Console.WriteLine($"'{PlayedGamesEarnedAchievements[gameUrl]}' has removed " +
+                            $"{achievementsRemovedCount} of the achievements {Username} had earned.");
                     }
                 }
             }
