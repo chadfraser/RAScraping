@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
@@ -10,22 +11,23 @@ namespace Fraser.GenericMethods
     public class EmailComposer
     {
         private static string fromEmail;
+        private static List<string> toEmails;
         //SecureString emailPassword;
         private static string emailPassword;
 
-        public static void InitializeGmailComposer(string toEmail, string subject, string message)
+        public static void InitializeGmailComposer(string subject, string message)
         {
             var client = new SmtpClient("smtp.gmail.com");
-            InitializeMailComposer(client, toEmail, subject, message);
+            InitializeMailComposer(client, subject, message);
         }
 
-        public static void InitializeOutlookComposer(string toEmail, string subject, string message)
+        public static void InitializeOutlookComposer(string subject, string message)
         {
             var client = new SmtpClient("smtp-mail.outlook.com");
-            InitializeMailComposer(client, toEmail, subject, message);
+            InitializeMailComposer(client, subject, message);
         }
 
-        public static void InitializeMailComposer(SmtpClient client, string toEmail, string subject, string message)
+        public static void InitializeMailComposer(SmtpClient client, string subject, string message)
         {
             InitializeEmailAndPassword();
 
@@ -35,7 +37,10 @@ namespace Fraser.GenericMethods
                 Subject = subject,
                 Body = message
             };
-            mail.To.Add(new MailAddress(toEmail));
+            foreach (var email in toEmails)
+            {
+                mail.To.Add(new MailAddress(email));
+            }
 
             client.Port = 587;
             client.EnableSsl = true;
@@ -156,6 +161,7 @@ namespace Fraser.GenericMethods
     {
         public string EmailAddress;
         public string Password;
+        public List<string> RecepientEmailAddresses;
         //public SecureString password;
     }
 }
