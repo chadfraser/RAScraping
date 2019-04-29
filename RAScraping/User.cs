@@ -87,7 +87,7 @@ namespace RAScraping
                 $"{BaseUrl}{UrlSuffix}&g={_maxGamesToCheck}");
             if (doc == null)
             {
-                return;
+                throw new HtmlWebException("Could not load webpage.");
             }
 
             FillPoints(doc);
@@ -160,9 +160,15 @@ namespace RAScraping
                     gameDict[link] = title;
                     if (!checkedGames.ContainsKey(link))
                     {
-                        var newGame = new Game(link);
-                        newGame.SaveData();
-                        checkedGames[link] = title;
+                        try
+                        {
+                            var newGame = new Game(link);
+                            newGame.SaveData();
+                            checkedGames[link] = title;
+                        }
+                        catch (HtmlWebException)
+                        {
+                        }
                     }
                 }
             }
@@ -215,7 +221,7 @@ namespace RAScraping
                 WriteUrlErrorMessage();
                 return;
             }
-            Console.WriteLine($"{Username} has undergone the following changes since the last time this program was run:");
+            Console.WriteLine($"\n{Username} has undergone the following changes:");
             if (!Points.Equals(oldUser.Points))
             {
                 WriteDifferenceInPoints(oldUser);
@@ -312,12 +318,12 @@ namespace RAScraping
             {
                 if (CompletedGamesData.ContainsKey(url))
                 {
-                    Console.WriteLine($"\t'{Username} had '{dictOfChangedGames[url]}', which has changed recently, " +
+                    Console.WriteLine($"\t{Username} had '{dictOfChangedGames[url]}', which has changed recently, " +
                         $"in their completed games list.");
                 }
                 else if (PlayedGamesData.ContainsKey(url))
                 {
-                    Console.WriteLine($"\t'{Username} had '{dictOfChangedGames[url]}', which has changed recently, " +
+                    Console.WriteLine($"\t{Username} had '{dictOfChangedGames[url]}', which has changed recently, " +
                         $"in their played games list.");
                 }
             }

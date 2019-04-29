@@ -7,16 +7,25 @@ namespace Fraser.GenericMethods
         public static HtmlDocument GetDocumentOrNullIfError(string url)
         {
             var website = new HtmlWeb();
-            var doc = website.Load(url);
+            HtmlDocument doc;
 
-            website.PostResponse = (request, response) =>
+            try
             {
-                if (response == null)
+                doc = website.Load(url);
+                website.PostResponse = (request, response) =>
                 {
-                    WriteErrorMessage(url);
-                    doc = null;
-                }
-            };
+                    if (response == null)
+                    {
+                        WriteErrorMessage(url);
+                        doc = null;
+                    }
+                };
+            }
+            catch (System.Net.WebException)
+            {
+                WriteErrorMessage(url);
+                doc = null;
+            }
             System.Threading.Thread.Sleep(2000);
             return doc;
         }

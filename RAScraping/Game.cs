@@ -31,7 +31,14 @@ namespace RAScraping
             AchievementsData = new Dictionary<string, Achievement>();
             if (!string.IsNullOrEmpty(UrlSuffix))
             {
-                FillGameData();
+                try
+                {
+                    FillGameData();
+                }
+                catch (HtmlWebException ex)
+                {
+                    throw ex;
+                }
             }
         }
 
@@ -69,7 +76,7 @@ namespace RAScraping
             var doc = HtmlDocumentHandler.GetDocumentOrNullIfError(BaseUrl + UrlSuffix);
             if (doc == null)
             {
-                return;
+                throw new HtmlWebException("Could not load webpage.");
             }
             if (CheckForInvalidGameId(doc))
             {
@@ -176,7 +183,7 @@ namespace RAScraping
                 WriteUrlErrorMessage();
                 return;
             }
-            Console.WriteLine($"{Name} has undergone the following changes since the last time this program was run:");
+            Console.WriteLine($"\n{Name} has undergone the following changes:");
             if (Name != oldGame.Name)
             {
                 Console.WriteLine($"\t'{oldGame.Name}' has been updated to '{Name}'.");
@@ -215,6 +222,7 @@ namespace RAScraping
                 $"in the json file.");
             Console.WriteLine($"This should not be possible, and indicates there is an error either in the saved " +
                 $"json file or the new game data.");
+
             //Console.WriteLine($"Press enter to override the stored json file with the new game data.");
             //Console.ReadLine();
         }
@@ -235,7 +243,7 @@ namespace RAScraping
 
         public void WriteDifferenceInAchievementCount(Game oldGame)
         {
-            var comparator = (AchievementCount < oldGame.AchievementCount) ? "gained" : "lost";
+            var comparator = (AchievementCount > oldGame.AchievementCount) ? "gained" : "lost";
             var countDifference = Math.Abs(AchievementCount - oldGame.AchievementCount);
             if (countDifference == 1)
             {

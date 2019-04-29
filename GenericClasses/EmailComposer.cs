@@ -126,9 +126,9 @@ namespace Fraser.GenericMethods
                     input = Console.ReadLine();
                     toEmails.Add(input);
                 }
-                while (!String.IsNullOrEmpty(input));
+                while (!string.IsNullOrEmpty(input));
 
-                if (toEmails.Count > 0 && String.IsNullOrEmpty(toEmails[toEmails.Count - 1]))
+                if (toEmails.Count > 0 && string.IsNullOrEmpty(toEmails[toEmails.Count - 1]))
                 {
                     toEmails.RemoveAt(toEmails.Count - 1);
                 }
@@ -182,10 +182,11 @@ namespace Fraser.GenericMethods
             {
                 client.Send(mail);
             }
-            catch (SmtpException)
+            catch (SmtpException ex)
             {
                 Console.WriteLine("We have run into an exception. Either your email and password are incorrect, " +
                     "or your email is not set up to send messages through SMTP.");
+                throw ex;
             }
         }
 

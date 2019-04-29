@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using HtmlAgilityPack;
 using System.IO;
 using Newtonsoft.Json;
-using System.Reflection;
 using Fraser.GenericMethods;
+using System.Net.Mail;
+using HtmlAgilityPack;
 
 namespace RAScraping
 {
@@ -20,14 +18,15 @@ namespace RAScraping
 
         static void Main(string[] args)
         {
-            var mail = new EmailComposer();
-            mail.InitializeOutlookComposer("chad.fraser@mail.mcgill.ca");
-
-            var sb = new OutputHandler();
-            Console.SetOut(sb);
-
+            var rootObject = new RootObject();
             var checkedGamesData = new Dictionary<string, string>();
             var changedGamesData = new Dictionary<string, string>();
+
+            var mail = new EmailComposer();
+            mail.InitializeOutlookComposer();
+
+            var outputHandler = new OutputHandler();
+            Console.SetOut(outputHandler);
 
             InitializePaths();
             UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
@@ -37,27 +36,38 @@ namespace RAScraping
                 using (StreamReader r = new StreamReader(Path.Combine(dataDirectory, "main_data.json")))
                 {
                     var json = r.ReadToEnd();
-                    RootObject rootObject = JsonConvert.DeserializeObject<RootObject>(json);
+                    rootObject = JsonConvert.DeserializeObject<RootObject>(json);
                     if (rootObject.Usernames is null)
                     {
-                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty. " +
-                            "Press enter to end the program.");
-                        Console.ReadLine();
-                        Environment.Exit(0);
+                        Console.WriteLine("The list of usernames in the 'main_data.json' file is empty.");
                     }
-                    UpdateTrackedUserData(rootObject, ref checkedGamesData, changedGamesData);
+                    else
+                    {
+                        UpdateTrackedUserData(rootObject, ref checkedGamesData, changedGamesData);
+                    }
                 }
             }
             catch (FileNotFoundException)
             {
-                FileNotFoundHandler.AbortProgramToDueMissingCriticalFile("main_data.json", dataDirectory);
+                //FileNotFoundHandler.AbortProgramToDueMissingCriticalFile("main_data.json", dataDirectory);
             }
 
-            if (String.IsNullOrWhiteSpace(sb.Output.ToString()))
+            WriteRecentChanges(outputHandler, rootObject);
+            rootObject.LastAccess = DateTime.Now;
+            rootObject.SaveProperties(Path.Combine(dataDirectory, "main_data.json"));
+            try
             {
-                sb.Output.Append("No changes have been made to any tracked files since the program was last run.");
+                mail.SendEmail($"RA Scraping Results, " +
+                    $"{rootObject.LastAccess.ToString("yyyy/MM/dd, H:mm tt")}",
+                    outputHandler.Output.ToString());
             }
-            mail.SendEmail("Test", sb.Output.ToString());
+            catch (SmtpException)
+            {
+                File.WriteAllText(
+                    Path.Combine(dataDirectory,
+                    $"error_{rootObject.LastAccess.ToString("yyyy-MM-dd  H,mm tt")}.txt"),
+                    outputHandler.Output.ToString());
+            }
         }
 
         static void InitializePaths()
@@ -101,7 +111,6 @@ namespace RAScraping
                 }
                 catch (FileNotFoundException)
                 {
-
                     FileNotFoundHandler.AbortProgramToDueMissingCriticalFile(filename, gameDataDirectory);
                 }
 
@@ -117,6 +126,10 @@ namespace RAScraping
             foreach (string username in rootObject.Usernames)
             {
                 User newUser = BuildSingleUserData(username, ref checkedGamesData);
+                if (newUser is null)
+                {
+                    continue;
+                }
 
                 if (oneUserPerFile)
                 {
@@ -148,7 +161,14 @@ namespace RAScraping
         static User BuildSingleUserData(string username, ref Dictionary<string, string> checkedGamesData)
         {
             var newUser = new User(username);
-            newUser.FillUserData(ref checkedGamesData);
+            try
+            {
+                newUser.FillUserData(ref checkedGamesData);
+            }
+            catch (HtmlWebException)
+            {
+                return null;
+            }
             return newUser;
         }
 
@@ -218,6 +238,22 @@ namespace RAScraping
             WriteAllUserData(finalUsers);
         }
 
+        static void WriteRecentChanges(OutputHandler outputHandler, RootObject rootObject)
+        {
+            string message;
+            var messageSuffix = (rootObject.LastAccess == null) ? "." : $" on {rootObject.ParseLastAccess()}.\n";
+
+            if (string.IsNullOrWhiteSpace(outputHandler.Output.ToString()))
+            {
+                message = "No changes have been made to any tracked files since the program was last run";
+            }
+            else
+            {
+                message = "The following changes have been made since the program was last run";
+            }
+            outputHandler.Output.Insert(0, $"{message}{messageSuffix}");
+        }
+
         /// <summary>
         /// Tests if two dictionaries are functionally equal. This means that they have the same keys, and for every
         /// key their values are equal according to the <c>.Equals()</c> method.
@@ -261,5 +297,22 @@ namespace RAScraping
     public class RootObject
     {
         public List<string> Usernames;
+        public DateTime LastAccess;
+
+        public string ParseLastAccess()
+        {
+            if (LastAccess == null)
+            {
+                return "";
+            }
+            return $"{LastAccess.ToLongDateString()} at {LastAccess.ToLongTimeString()}";
+        }
+
+        public void SaveProperties(string givenPath)
+        {
+            string jsonSerialize = JsonConvert.SerializeObject(this, Formatting.Indented);
+            File.WriteAllText(givenPath, jsonSerialize);
+        }
+
     }
 }
