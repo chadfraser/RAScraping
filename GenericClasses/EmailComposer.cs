@@ -120,6 +120,7 @@ namespace Fraser.GenericMethods
             string input;
             if (toEmails is null || toEmails.Count == 0)
             {
+                toEmails = new List<string>();
                 Console.WriteLine("Please enter all emails that you wish to send the message to. End with a blank line.");
                 do
                 {
