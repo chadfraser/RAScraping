@@ -344,88 +344,88 @@ namespace RAScraping.UnitTests
             Assert.IsTrue(result);
         }
 
-        [TestMethod]
-        public void UserDataFillTest_FillCompletedGamesDataWithControlDoc_AreEqual()
-        {
-            InitializeDirectories();
+        //[TestMethod]
+        //public void UserDataFillTest_FillCompletedGamesDataWithControlDoc_AreEqual()
+        //{
+        //    InitializeDirectories();
 
-            var userTest = new User();
-            var userA = new PrivateObject(userTest);
-            var controlDoc = LoadControlDoc();
-            var controlCompletedGamesData = new Dictionary<string, string>
-            {
-                ["/Game/1627"] = "Color a Dinosaur (NES)",
-                ["/Game/1623"] = "Clu Clu Land (NES)"
-            };
-            var controlDict = controlCompletedGamesData.ToDictionary(entry => entry.Key,
-                entry => entry.Value); ;
-            var controlArray = new object[] { controlDoc, controlDict };
+        //    var userTest = new User();
+        //    var userA = new PrivateObject(userTest);
+        //    var controlDoc = LoadControlDoc();
+        //    var controlCompletedGamesData = new Dictionary<string, string>
+        //    {
+        //        ["/Game/1627"] = "Color a Dinosaur (NES)",
+        //        ["/Game/1623"] = "Clu Clu Land (NES)"
+        //    };
+        //    var controlDict = controlCompletedGamesData.ToDictionary(entry => entry.Key,
+        //        entry => entry.Value); ;
+        //    var controlArray = new object[] { controlDoc, controlDict };
 
-            userA.Invoke("FillCompletedGames", controlArray);
-            var completedGamesResult = ((Dictionary<string, string>)userA.GetProperty("CompletedGamesData"));
-            var result = User.AreDictsEqual(completedGamesResult, controlCompletedGamesData);
+        //    userA.Invoke("FillCompletedGames", controlArray);
+        //    var completedGamesResult = ((Dictionary<string, string>)userA.GetProperty("CompletedGamesData"));
+        //    var result = User.AreDictsEqual(completedGamesResult, controlCompletedGamesData);
 
-            Assert.IsTrue(result);
-        }
+        //    Assert.IsTrue(result);
+        //}
 
-        [TestMethod]
-        public void UserDataFillTest_FillPlayedGamesDataWithControlDoc_AreEqual()
-        {
-            InitializeDirectories();
+        //[TestMethod]
+        //public void UserDataFillTest_FillPlayedGamesDataWithControlDoc_AreEqual()
+        //{
+        //    InitializeDirectories();
 
-            var userTest = new User();
-            var userA = new PrivateObject(userTest);
-            var controlDoc = LoadControlDoc();
-            var controlPlayedGamesData = new Dictionary<string, string>
-            {
-                ["/Game/1720"] = "Goonies, The",
-                ["/Game/1474"] = "Friday the 13th"
-            };
+        //    var userTest = new User();
+        //    var userA = new PrivateObject(userTest);
+        //    var controlDoc = LoadControlDoc();
+        //    var controlPlayedGamesData = new Dictionary<string, string>
+        //    {
+        //        ["/Game/1720"] = "Goonies, The",
+        //        ["/Game/1474"] = "Friday the 13th"
+        //    };
 
-            var controlDict = controlPlayedGamesData.ToDictionary(entry => entry.Key,
-                entry => entry.Value); ;
-            controlDict["/Game/1627"] = "Color a Dinosaur (NES)";
-            controlDict["/Game/1623"] = "Clu Clu Land (NES)";
-            var controlArray = new object[] { controlDoc, controlDict };
+        //    var controlDict = controlPlayedGamesData.ToDictionary(entry => entry.Key,
+        //        entry => entry.Value); ;
+        //    controlDict["/Game/1627"] = "Color a Dinosaur (NES)";
+        //    controlDict["/Game/1623"] = "Clu Clu Land (NES)";
+        //    var controlArray = new object[] { controlDoc, controlDict };
 
-            userA.SetProperty("CompletedGamesData", new Dictionary<string, string>
-            {
-                ["/Game/1627"] = "Color a Dinosaur (NES)",
-                ["/Game/1623"] = "Clu Clu Land (NES)"
-            });
-            userA.Invoke("FillPlayedGames", controlArray);
-            var playedGamesResult = ((Dictionary<string, string>)userA.GetProperty("PlayedGamesData"));
-            var result = User.AreDictsEqual(playedGamesResult, controlPlayedGamesData);
+        //    userA.SetProperty("CompletedGamesData", new Dictionary<string, string>
+        //    {
+        //        ["/Game/1627"] = "Color a Dinosaur (NES)",
+        //        ["/Game/1623"] = "Clu Clu Land (NES)"
+        //    });
+        //    userA.Invoke("FillPlayedGames", controlArray);
+        //    var playedGamesResult = ((Dictionary<string, string>)userA.GetProperty("PlayedGamesData"));
+        //    var result = User.AreDictsEqual(playedGamesResult, controlPlayedGamesData);
 
-            Assert.IsTrue(result);
-        }
+        //    Assert.IsTrue(result);
+        //}
 
-        [TestMethod]
-        public void UserDataFillTest_FillEarnedAchievementsDataWithControlDoc_AreEqual()
-        {
-            InitializeDirectories();
+        //[TestMethod]
+        //public void UserDataFillTest_FillEarnedAchievementsDataWithControlDoc_AreEqual()
+        //{
+        //    InitializeDirectories();
 
-            var userTest = new User();
-            var userA = new PrivateObject(userTest);
-            var controlDoc = LoadControlDoc();
-            var controlEarnedAchievementsData = new Dictionary<string, HashSet<string>>
-            {
-                ["/Game/1720"] = new HashSet<string>{ "/Achievement/61502", "/Achievement/61339" },
-                ["/Game/1474"] = new HashSet<string> { "/Achievement/3231", "/Achievement/3241", "/Achievement/3246" }
-            };
-            var controlArray = new object[] { controlDoc };
+        //    var userTest = new User();
+        //    var userA = new PrivateObject(userTest);
+        //    var controlDoc = LoadControlDoc();
+        //    var controlEarnedAchievementsData = new Dictionary<string, HashSet<string>>
+        //    {
+        //        ["/Game/1720"] = new HashSet<string>{ "/Achievement/61502", "/Achievement/61339" },
+        //        ["/Game/1474"] = new HashSet<string> { "/Achievement/3231", "/Achievement/3241", "/Achievement/3246" }
+        //    };
+        //    var controlArray = new object[] { controlDoc };
 
-            userA.SetProperty("PlayedGamesData", new Dictionary<string, string>
-            {
-                ["/Game/1720"] = "Goonies, The",
-                ["/Game/1474"] = "Friday the 13th"
-            });
-            userA.Invoke("FillPlayedGamesEarnedAchievements", controlArray);
-            var earnedAchievementsResult = ((Dictionary<string, HashSet<string>>)userA.GetProperty("PlayedGamesEarnedAchievements"));
-            var result = User.AreDictsEqual(earnedAchievementsResult, controlEarnedAchievementsData);
+        //    userA.SetProperty("PlayedGamesData", new Dictionary<string, string>
+        //    {
+        //        ["/Game/1720"] = "Goonies, The",
+        //        ["/Game/1474"] = "Friday the 13th"
+        //    });
+        //    userA.Invoke("FillPlayedGamesEarnedAchievements", controlArray);
+        //    var earnedAchievementsResult = ((Dictionary<string, HashSet<string>>)userA.GetProperty("PlayedGamesEarnedAchievements"));
+        //    var result = User.AreDictsEqual(earnedAchievementsResult, controlEarnedAchievementsData);
 
-            Assert.IsTrue(result);
-        }
+        //    Assert.IsTrue(result);
+        //}
 
         private void InitializeUserData(User[] users)
         {
