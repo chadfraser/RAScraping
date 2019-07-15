@@ -88,46 +88,36 @@ namespace RAScraping
             ref Dictionary<string, string> changedGamesData)
         {
             string[] fileArray = Directory.GetFiles(gameDataDirectory, "*.json");
-            foreach (var filename in fileArray)
+            foreach (var absoluteFileName in fileArray)
             {
-                var urlNumber = filename.Split(' ').Last().Replace(".json", "");
+                var urlNumber = absoluteFileName.Split(' ').Last().Replace(".json", "");
+                var baseFileName = Path.GetFileName(absoluteFileName);
                 var url = $"/Game/{urlNumber}";
                 var newGame = new Game(url);
                 Game oldGame;
 
                 try
                 {
-                    using (StreamReader r = new StreamReader(Path.Combine(gameDataDirectory, filename)))
+                    using (StreamReader r = new StreamReader(Path.Combine(gameDataDirectory, absoluteFileName)))
                     {
                         var json = r.ReadToEnd();
                         oldGame = JsonConvert.DeserializeObject<Game>(json);
                     }
                     if (!oldGame.Equals(newGame))
                     {
-
-                        //////////////////////////////////////////////////////////
-                        var fileNameSuffix = Path.GetFileName(filename);
-                        Console.WriteLine(Path.Combine(gameDataDirectory, "outdated", fileNameSuffix));
-                        Console.WriteLine(Path.Combine(filename));
-                        Console.WriteLine(Path.Combine(fileNameSuffix));
-                        //Console.ReadLine();
-                        File.Move(filename, Path.Combine(gameDataDirectory, "outdated", fileNameSuffix));
-
+                        File.Move(absoluteFileName, Path.Combine(gameDataDirectory, "outdated", baseFileName));
                         newGame.WriteDifferencesInGames(oldGame);
                         changedGamesData[url] = newGame.Name;
                         newGame.SaveData();
                     }
                     else if (newGame.TotalRetroRatioPoints != oldGame.TotalRetroRatioPoints)
                     {
-                        var fileNameSuffix = Path.GetFileName(filename);
-                        File.Move(filename, Path.Combine(gameDataDirectory, "outdated", fileNameSuffix));
                         newGame.SaveData();
-                        //////////////////////////////////////////////////////////
                     }
                 }
                 catch (FileNotFoundException)
                 {
-                    FileNotFoundHandler.AbortProgramToDueMissingCriticalFile(filename, gameDataDirectory);
+                    FileNotFoundHandler.AbortProgramToDueMissingCriticalFile(absoluteFileName, gameDataDirectory);
                 }
 
                 checkedGamesData[url] = newGame.Name;
