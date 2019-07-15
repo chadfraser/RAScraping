@@ -18,8 +18,8 @@ namespace RAScraping
 
         public User(string username, string urlSuffix)
         {
-            this.Username = username;
-            this.UrlSuffix = urlSuffix;
+            Username = username;
+            UrlSuffix = urlSuffix;
             Points = RetroRatioPoints = 0;
             CompletedGamesData = new Dictionary<string, string>();
             PlayedGamesData = new Dictionary<string, string>();

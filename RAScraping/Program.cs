@@ -14,6 +14,7 @@ namespace RAScraping
         private static string dataDirectory;
         public static string userDataDirectory;
         public static string gameDataDirectory;
+        public static string gameSystemDataDirectory;
         private static bool oneUserPerFile = true;
 
         static void Main(string[] args)
@@ -26,10 +27,11 @@ namespace RAScraping
             mail.InitializeOutlookComposer();
 
             var outputHandler = new OutputHandler();
-            Console.SetOut(outputHandler);
+            //Console.SetOut(outputHandler);
 
             InitializePaths();
             UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
+            UpdateTrackedGameSystemData(checkedGamesData);
 
             try
             {
@@ -78,6 +80,8 @@ namespace RAScraping
                 new string[] { "data", "users" });
             gameDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory(
                 new string[] { "data", "games" });
+            gameSystemDataDirectory = DirectoryBuilder.BuildPathAndDirectoryFromMainDirectory(
+                new string[] { "data", "systems" });
         }
 
         static void UpdateTrackedGameData(ref Dictionary<string, string> checkedGamesData,
@@ -100,13 +104,25 @@ namespace RAScraping
                     }
                     if (!oldGame.Equals(newGame))
                     {
+
+                        //////////////////////////////////////////////////////////
+                        var fileNameSuffix = Path.GetFileName(filename);
+                        Console.WriteLine(Path.Combine(gameDataDirectory, "outdated", fileNameSuffix));
+                        Console.WriteLine(Path.Combine(filename));
+                        Console.WriteLine(Path.Combine(fileNameSuffix));
+                        //Console.ReadLine();
+                        File.Move(filename, Path.Combine(gameDataDirectory, "outdated", fileNameSuffix));
+
                         newGame.WriteDifferencesInGames(oldGame);
                         changedGamesData[url] = newGame.Name;
                         newGame.SaveData();
                     }
                     else if (newGame.TotalRetroRatioPoints != oldGame.TotalRetroRatioPoints)
                     {
+                        var fileNameSuffix = Path.GetFileName(filename);
+                        File.Move(filename, Path.Combine(gameDataDirectory, "outdated", fileNameSuffix));
                         newGame.SaveData();
+                        //////////////////////////////////////////////////////////
                     }
                 }
                 catch (FileNotFoundException)
@@ -115,6 +131,37 @@ namespace RAScraping
                 }
 
                 checkedGamesData[url] = newGame.Name;
+            }
+        }
+
+        static void UpdateTrackedGameSystemData(Dictionary<string, string> checkedGamesData)
+        {
+            string[] fileArray = Directory.GetFiles(gameSystemDataDirectory, "*.json");
+            foreach (var filename in fileArray)
+            {
+                string urlSuffix;
+                GameSystem newGameSystem;
+                GameSystem oldGameSystem;
+
+                try
+                {
+                    using (StreamReader r = new StreamReader(Path.Combine(gameDataDirectory, filename)))
+                    {
+                        var json = r.ReadToEnd();
+                        oldGameSystem = JsonConvert.DeserializeObject<GameSystem>(json);
+                        urlSuffix = oldGameSystem.UrlSuffix;
+                        newGameSystem = new GameSystem(urlSuffix, checkedGamesData);
+                    }
+                    if (!oldGameSystem.Equals(newGameSystem))
+                    {
+                        newGameSystem.WriteDifferencesInGames(oldGameSystem);
+                        newGameSystem.SaveData();
+                    }
+                }
+                catch (FileNotFoundException)
+                {
+                    FileNotFoundHandler.AbortProgramToDueMissingCriticalFile(filename, gameDataDirectory);
+                }
             }
         }
 
