@@ -27,7 +27,7 @@ namespace RAScraping
             mail.InitializeOutlookComposer();
 
             var outputHandler = new OutputHandler();
-            //Console.SetOut(outputHandler);
+            Console.SetOut(outputHandler);
 
             InitializePaths();
             UpdateTrackedGameData(ref checkedGamesData, ref changedGamesData);
@@ -105,7 +105,14 @@ namespace RAScraping
                     }
                     if (!oldGame.Equals(newGame))
                     {
-                        File.Move(absoluteFileName, Path.Combine(gameDataDirectory, "outdated", baseFileName));
+                        var newFileLocation = Path.Combine(gameDataDirectory, "outdated", baseFileName);
+                        if (File.Exists(newFileLocation))
+                        {
+                            File.Delete(newFileLocation);
+                            Console.WriteLine($"The file {newFileLocation} has been updated, even though it should no " +
+                                $"longer be relevant. Please ensure that this file is not relevant.");
+                        }
+                        File.Move(absoluteFileName, newFileLocation);
                         newGame.WriteDifferencesInGames(oldGame);
                         changedGamesData[url] = newGame.Name;
                         newGame.SaveData();
